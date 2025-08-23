@@ -28,25 +28,25 @@ program : E NL{
     $$ = $1;
     head = $1;
 }
-E   : E PLUS E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+E   : PLUS E E {
+        $1->left = $2;
+        $1->right = $3;
+        $$ = $1;
     }
-    | E MINUS E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+    | MINUS E E {
+        $1->left = $2;
+        $1->right = $3;
+        $$ = $1;
     }
-    | E DIV E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+    | DIV E E {
+        $1->left = $2;
+        $1->right = $3;
+        $$ = $1;
     }
-    | E MUL E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+    | MUL E E {
+        $1->left = $2;
+        $1->right = $3;
+        $$ = $1;
     }
     | LPAREN E RPAREN{
         $$ = $2;

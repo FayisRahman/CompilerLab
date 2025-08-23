@@ -1339,9 +1339,9 @@ yyreduce:
   case 3:
 #line 31 "exptree.y"
                {
-        (yyvsp[-1].node)->left = (yyvsp[-2].node);
-        (yyvsp[-1].node)->right = (yyvsp[0].node);
-        (yyval.node) = (yyvsp[-1].node);
+        (yyvsp[-2].node)->left = (yyvsp[-1].node);
+        (yyvsp[-2].node)->right = (yyvsp[0].node);
+        (yyval.node) = (yyvsp[-2].node);
     }
 #line 1347 "y.tab.c"
     break;
@@ -1349,9 +1349,9 @@ yyreduce:
   case 4:
 #line 36 "exptree.y"
                 {
-        (yyvsp[-1].node)->left = (yyvsp[-2].node);
-        (yyvsp[-1].node)->right = (yyvsp[0].node);
-        (yyval.node) = (yyvsp[-1].node);
+        (yyvsp[-2].node)->left = (yyvsp[-1].node);
+        (yyvsp[-2].node)->right = (yyvsp[0].node);
+        (yyval.node) = (yyvsp[-2].node);
     }
 #line 1357 "y.tab.c"
     break;
@@ -1359,9 +1359,9 @@ yyreduce:
   case 5:
 #line 41 "exptree.y"
               {
-        (yyvsp[-1].node)->left = (yyvsp[-2].node);
-        (yyvsp[-1].node)->right = (yyvsp[0].node);
-        (yyval.node) = (yyvsp[-1].node);
+        (yyvsp[-2].node)->left = (yyvsp[-1].node);
+        (yyvsp[-2].node)->right = (yyvsp[0].node);
+        (yyval.node) = (yyvsp[-2].node);
     }
 #line 1367 "y.tab.c"
     break;
@@ -1369,9 +1369,9 @@ yyreduce:
   case 6:
 #line 46 "exptree.y"
               {
-        (yyvsp[-1].node)->left = (yyvsp[-2].node);
-        (yyvsp[-1].node)->right = (yyvsp[0].node);
-        (yyval.node) = (yyvsp[-1].node);
+        (yyvsp[-2].node)->left = (yyvsp[-1].node);
+        (yyvsp[-2].node)->right = (yyvsp[0].node);
+        (yyval.node) = (yyvsp[-2].node);
     }
 #line 1377 "y.tab.c"
     break;
