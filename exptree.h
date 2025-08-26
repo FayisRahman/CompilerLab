@@ -26,7 +26,8 @@ enum NodeType {
 enum DataType {
     NONE,
     INT,
-    STRING
+    STRING,
+    BOOL,
 };
 
 

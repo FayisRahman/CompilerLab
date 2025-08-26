@@ -15,10 +15,10 @@
     struct tnode* node;
     char character;
 }
-%token<node> PLUS MINUS DIV MUL NUM ID WRITE READ '='
-%token begin end 
+%token<node> PLUS MINUS DIV MUL NUM ID WRITE READ '=' GT GE LT LE NE EQ
+%token begin end IF then Else ENDIF WHILE DO ENDWHILE
 
-%type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt
+%type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt 
 
 %left PLUS MINUS
 %left MUL DIV
@@ -67,6 +67,14 @@ Stmt    : InputStmt { $$ = $1;}
         | AsgStmt { $$ = $1;}
         ;
 
+Ifstmt  : IF '(' E ')' then Slist Else Slist ENDIF ';'
+        | IF '(' E ')' then Slist ENDIF ';'
+        ;
+
+Whilestmt   : WHILE '(' E ')' DO Slist ENDWHILE ';'
+            ;
+
+
 E   : E PLUS E {
         $2->left = $1;
         $2->right = $3;
@@ -96,6 +104,12 @@ E   : E PLUS E {
     | ID {
         $$ = $1;
     }
+    | E GT E 
+    | E LT E 
+    | E GE E 
+    | E LE E 
+    | E NE E 
+    | E EQ E;
     ;
 %%
 
@@ -147,28 +161,15 @@ void postfixPrint(struct tnode* head){
     printf("%s ", head->varname);
 }
 
-/* void prefixPrint(struct tnode* head){
-    if(!head)return;
-    if(!head->left && !head->right){
-        if (head->op) printf("%s ", head->op);
-        else printf("%d ", head->val);
-        return;
-    }
-    printf("%s ", head->op);
-    prefixPrint(head->left);
-    prefixPrint(head->right);
-    
-} */
-
 
 
 int main() {
     yyin = fopen("a.txt", "r");
     yyparse();
-    /* FILE* fptr = openFile("a.xsm");
+    FILE* fptr = openFile("a.xsm");
     makeHeader(fptr);
     int a = codeGen(head,fptr,CONNECTOR);
-    exitFooter(fptr); */
-    codeIntrepret(head,CONNECTOR);
+    exitFooter(fptr);
+    /* codeIntrepret(head,CONNECTOR); */
     return 0;
 }
