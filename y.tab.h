@@ -54,10 +54,11 @@ extern int yydebug;
     DIV = 260,
     MUL = 261,
     NUM = 262,
-    VARIABLE = 263,
-    LPAREN = 264,
-    RPAREN = 265,
-    NL = 266
+    ID = 263,
+    WRITE = 264,
+    READ = 265,
+    begin = 266,
+    end = 267
   };
 #endif
 /* Tokens.  */
@@ -66,10 +67,11 @@ extern int yydebug;
 #define DIV 260
 #define MUL 261
 #define NUM 262
-#define VARIABLE 263
-#define LPAREN 264
-#define RPAREN 265
-#define NL 266
+#define ID 263
+#define WRITE 264
+#define READ 265
+#define begin 266
+#define end 267
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -80,7 +82,7 @@ union YYSTYPE
     struct tnode* node;
     char character;
 
-#line 84 "y.tab.h"
+#line 86 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

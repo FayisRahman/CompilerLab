@@ -351,8 +351,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 12
-#define YY_END_OF_BUFFER 13
+#define YY_NUM_RULES 17
+#define YY_END_OF_BUFFER 18
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -360,10 +360,12 @@ struct yy_trans_info
 	flex_int32_t yy_verify;
 	flex_int32_t yy_nxt;
 	};
-static const flex_int16_t yy_accept[19] =
+static const flex_int16_t yy_accept[38] =
     {   0,
-        0,    0,   13,   11,    9,   10,    7,    8,    6,    3,
-        4,    5,    1,    2,    9,    1,    2,    0
+        0,    0,   18,   16,   15,   15,   11,   12,   10,    7,
+        8,    9,    1,   13,   14,    6,    6,    6,    6,    6,
+       15,    1,    6,    6,    6,    6,    6,    6,    3,    6,
+        6,    6,    4,    6,    2,    5,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -373,15 +375,15 @@ static const YY_CHAR yy_ec[256] =
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    2,    1,    1,    1,    1,    1,    1,    1,    4,
         5,    6,    7,    1,    8,    1,    9,   10,   10,   10,
-       10,   10,   10,   10,   10,   10,   10,    1,    1,    1,
-        1,    1,    1,    1,   11,   11,   11,   11,   11,   11,
-       11,   11,   11,   11,   11,   11,   11,   11,   11,   11,
-       11,   11,   11,   11,   11,   11,   11,   11,   11,   11,
-        1,    1,    1,    1,    1,    1,   11,   11,   11,   11,
+       10,   10,   10,   10,   10,   10,   10,    1,   11,    1,
+       12,    1,    1,    1,   13,   13,   13,   13,   13,   13,
+       13,   13,   13,   13,   13,   13,   13,   13,   13,   13,
+       13,   13,   13,   13,   13,   13,   13,   13,   13,   13,
+        1,    1,    1,    1,    1,    1,   14,   15,   13,   16,
 
-       11,   11,   11,   11,   11,   11,   11,   11,   11,   11,
-       11,   11,   11,   11,   11,   11,   11,   11,   11,   11,
-       11,   11,    1,    1,    1,    1,    1,    1,    1,    1,
+       17,   13,   18,   13,   19,   13,   13,   13,   13,   20,
+       13,   13,   13,   21,   13,   22,   13,   13,   23,   13,
+       13,   13,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
@@ -398,36 +400,49 @@ static const YY_CHAR yy_ec[256] =
         1,    1,    1,    1,    1
     } ;
 
-static const YY_CHAR yy_meta[12] =
+static const YY_CHAR yy_meta[24] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    2,
-        2
+        1,    1,    2,    2,    2,    2,    2,    2,    2,    2,
+        2,    2,    2
     } ;
 
-static const flex_int16_t yy_base[20] =
+static const flex_int16_t yy_base[39] =
     {   0,
-        0,    0,   17,   18,   14,   18,   18,   18,   18,   18,
-       18,   18,    5,    0,   12,    3,    0,   18,   10
+        0,    0,   46,   47,   22,   24,   47,   47,   47,   47,
+       47,   47,   35,   47,   47,    0,   27,   23,   25,   20,
+       26,   30,    0,   21,   22,   23,   17,   16,    0,   18,
+       11,   12,    0,   14,    0,    0,   47,   28
     } ;
 
-static const flex_int16_t yy_def[20] =
+static const flex_int16_t yy_def[39] =
     {   0,
-       18,    1,   18,   18,   18,   18,   18,   18,   18,   18,
-       18,   18,   18,   19,   18,   18,   19,    0,   18
+       37,    1,   37,   37,   37,   37,   37,   37,   37,   37,
+       37,   37,   37,   37,   37,   38,   38,   38,   38,   38,
+       37,   37,   38,   38,   38,   38,   38,   38,   38,   38,
+       38,   38,   38,   38,   38,   38,    0,   37
     } ;
 
-static const flex_int16_t yy_nxt[30] =
+static const flex_int16_t yy_nxt[71] =
     {   0,
         4,    5,    6,    7,    8,    9,   10,   11,   12,   13,
-       14,   17,   16,   15,   16,   15,   18,    3,   18,   18,
-       18,   18,   18,   18,   18,   18,   18,   18,   18
+       14,   15,   16,   16,   17,   16,   18,   16,   16,   16,
+       19,   16,   20,   21,   21,   21,   21,   21,   21,   23,
+       36,   35,   34,   33,   32,   31,   30,   29,   28,   22,
+       27,   26,   25,   24,   22,   37,    3,   37,   37,   37,
+       37,   37,   37,   37,   37,   37,   37,   37,   37,   37,
+       37,   37,   37,   37,   37,   37,   37,   37,   37,   37
     } ;
 
-static const flex_int16_t yy_chk[30] =
+static const flex_int16_t yy_chk[71] =
     {   0,
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,   19,   16,   15,   13,    5,    3,   18,   18,   18,
-       18,   18,   18,   18,   18,   18,   18,   18,   18
+        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+        1,    1,    1,    5,    5,    6,    6,   21,   21,   38,
+       34,   32,   31,   30,   28,   27,   26,   25,   24,   22,
+       20,   19,   18,   17,   13,    3,   37,   37,   37,   37,
+       37,   37,   37,   37,   37,   37,   37,   37,   37,   37,
+       37,   37,   37,   37,   37,   37,   37,   37,   37,   37
     } ;
 
 static yy_state_type yy_last_accepting_state;
@@ -448,11 +463,10 @@ char *yytext;
 #line 2 "exptree.l"
     #include <stdio.h>
     #include "y.tab.h"
-    #include "exptree.h"
     #include "exptree.c"
 
-#line 455 "lex.yy.c"
-#line 456 "lex.yy.c"
+#line 469 "lex.yy.c"
+#line 470 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -669,10 +683,10 @@ YY_DECL
 		}
 
 	{
-#line 10 "exptree.l"
+#line 9 "exptree.l"
 
 
-#line 676 "lex.yy.c"
+#line 690 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -699,13 +713,13 @@ yy_match:
 			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 				{
 				yy_current_state = (int) yy_def[yy_current_state];
-				if ( yy_current_state >= 19 )
+				if ( yy_current_state >= 38 )
 					yy_c = yy_meta[yy_c];
 				}
 			yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
 			++yy_cp;
 			}
-		while ( yy_base[yy_current_state] != 18 );
+		while ( yy_base[yy_current_state] != 47 );
 
 yy_find_action:
 		yy_act = yy_accept[yy_current_state];
@@ -731,9 +745,10 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 12 "exptree.l"
+#line 11 "exptree.l"
 {
-    yylval.node = makeLeafNode(atoi(yytext));
+    
+    yylval.node = createTree(atoi(yytext), INT, NULL, LEAFNODE, NULL, NULL);
     return NUM;
 }
 	YY_BREAK
@@ -741,80 +756,118 @@ case 2:
 YY_RULE_SETUP
 #line 17 "exptree.l"
 {
-    yylval.node = makeOperatorNode(yytext,NULL,NULL);
-    return VARIABLE;
+    return begin;
 }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 22 "exptree.l"
+#line 21 "exptree.l"
 {
-    yylval.node = makeOperatorNode(yytext,NULL,NULL);
-    return PLUS;
+    return end;
 }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 26 "exptree.l"
+#line 25 "exptree.l"
 {
-    yylval.node = makeOperatorNode(yytext,NULL,NULL);
-    return MINUS;
+    yylval.node = createTree(0, NONE, NULL, READNODE, NULL, NULL);
+    return READ;
 }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 30 "exptree.l"
 {
-    yylval.node = makeOperatorNode(yytext,NULL,NULL);
-    return DIV;
+    yylval.node = createTree(0, NONE, NULL, WRITENODE, NULL, NULL);
+    return WRITE;
 }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 34 "exptree.l"
+#line 35 "exptree.l"
 {
-    yylval.node = makeOperatorNode(yytext,NULL,NULL);
-    return MUL;
+    yylval.node = createTree(0, INT, yytext, LEAFNODE, NULL, NULL);
+    return ID;
 }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 38 "exptree.l"
+#line 40 "exptree.l"
 {
-    return LPAREN;
+    yylval.node = createTree(0, NONE, yytext, OPERATOR, NULL, NULL);
+    return PLUS;
 }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 42 "exptree.l"
+#line 44 "exptree.l"
 {
-    return RPAREN;
+    yylval.node = createTree(0, NONE, yytext, OPERATOR, NULL, NULL);
+    return MINUS;
 }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 45 "exptree.l"
-{ /* skip whitespace */ }
+#line 48 "exptree.l"
+{
+    yylval.node = createTree(0, NONE, yytext, OPERATOR, NULL, NULL);
+    return DIV;
+}
 	YY_BREAK
 case 10:
-/* rule 10 can match eol */
 YY_RULE_SETUP
-#line 46 "exptree.l"
+#line 52 "exptree.l"
 {
-    return NL;
+    yylval.node = createTree(0, NONE, yytext, OPERATOR, NULL, NULL);
+    return MUL;
 }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 49 "exptree.l"
-{ /* ignore unrecognized characters */ }
+#line 56 "exptree.l"
+{
+    return '(';
+}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 51 "exptree.l"
+#line 60 "exptree.l"
+{
+    return ')';
+}
+	YY_BREAK
+case 13:
+YY_RULE_SETUP
+#line 64 "exptree.l"
+{
+    return ';';
+}
+	YY_BREAK
+case 14:
+YY_RULE_SETUP
+#line 68 "exptree.l"
+{
+    yylval.node = createTree(0, NONE, yytext, EQUAL, NULL, NULL);
+    return '=';
+}
+	YY_BREAK
+case 15:
+/* rule 15 can match eol */
+YY_RULE_SETUP
+#line 73 "exptree.l"
+{ /* skip whitespace */ }
+	YY_BREAK
+case 16:
+YY_RULE_SETUP
+#line 75 "exptree.l"
+{ /* ignore unrecognized characters */ }
+	YY_BREAK
+case 17:
+YY_RULE_SETUP
+#line 77 "exptree.l"
 ECHO;
 	YY_BREAK
-#line 818 "lex.yy.c"
+#line 871 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1111,7 +1164,7 @@ static int yy_get_next_buffer (void)
 		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 			{
 			yy_current_state = (int) yy_def[yy_current_state];
-			if ( yy_current_state >= 19 )
+			if ( yy_current_state >= 38 )
 				yy_c = yy_meta[yy_c];
 			}
 		yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
@@ -1139,11 +1192,11 @@ static int yy_get_next_buffer (void)
 	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
 		{
 		yy_current_state = (int) yy_def[yy_current_state];
-		if ( yy_current_state >= 19 )
+		if ( yy_current_state >= 38 )
 			yy_c = yy_meta[yy_c];
 		}
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + yy_c];
-	yy_is_jam = (yy_current_state == 18);
+	yy_is_jam = (yy_current_state == 37);
 
 		return yy_is_jam ? 0 : yy_current_state;
 }
@@ -1819,7 +1872,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 51 "exptree.l"
+#line 77 "exptree.l"
 
 
 int yywrap() {
