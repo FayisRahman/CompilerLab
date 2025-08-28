@@ -10,6 +10,7 @@ int regCount = 0;
 int labelCount = -1;
 int stackTop = -1;
 int stack[MAX_LABEL]={0};
+int stack_address = 0;
 
 
 void make_header(FILE *fptr) {
@@ -37,19 +38,9 @@ int createLabel(){
 
 void write_codegen(struct tnode* t,FILE* fptr){
 	
-	
-	if(t->nodetype == OPERATOR){
-		
-		int p = arithemetic_expression_codegen(t,fptr);
-		write_code_from_reg(fptr,p);
-		freeReg();
-	}else if(t->varname != NULL ){
-		write_code_from_addr(fptr,t);
-	}else {
-		int p = arithemetic_expression_codegen(t,fptr);
-		write_code_from_reg(fptr,p);
-		freeReg();
-	}
+	int p = arithemetic_expression_codegen(t,fptr);
+	write_code_from_reg(fptr,p);
+	freeReg();
 	return;
 }
 
@@ -149,7 +140,6 @@ int boolean_expression_codegen(struct tnode* t,FILE* fptr){
 	return lReg;	
 }
 
-
 int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	int p,q;
 	if(!t)return -1;
@@ -192,9 +182,10 @@ void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 }
 
 void read_code_to_addr(FILE* fptr, char* var){
-	fprintf(fptr, "MOV SP, 4122\n");
+	fprintf(fptr, "MOV SP, %d\n", stack_address);
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
+		freeReg();
 	}
 	int addr = 4096 + var[0] - 'a';
 	int p = getReg();
@@ -215,6 +206,7 @@ void read_code_to_addr(FILE* fptr, char* var){
 	freeReg();
 	for(int i=regCount-1;i>=0;i--){
 		fprintf(fptr, "POP R%d\n",i);
+		getReg();
 	}	
 }
 
@@ -222,6 +214,7 @@ void write_code_from_addr(FILE* fptr, tnode* t){
 	fprintf(fptr, "MOV SP, 4122\n");
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
+		freeReg();
 	}
 	int addr = 4096 + t->varname[0] - 'a';
 	int p = getReg();
@@ -242,14 +235,16 @@ void write_code_from_addr(FILE* fptr, tnode* t){
 	fprintf(fptr, "POP R%d\n", p);
 	freeReg();
 	for(int i=regCount-1;i>=0;i--){
+		getReg();
 		fprintf(fptr, "POP R%d\n",i);
 	}	
 }
 
 void write_code_from_reg(FILE* fptr, int regNo){
-	fprintf(fptr, "MOV SP, 4122\n");
+	fprintf(fptr, "MOV SP, %d\n",stack_address);
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
+		freeReg();
 	}
 	int p = getReg();
 	fprintf(fptr, "MOV R%d, \"Write\"\n",p);
@@ -268,6 +263,7 @@ void write_code_from_reg(FILE* fptr, int regNo){
 	freeReg();
 	for(int i=regCount-1;i>=0;i--){
 		fprintf(fptr, "POP R%d\n",i);
+		getReg();
 	}	
 }
 

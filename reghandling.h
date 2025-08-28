@@ -5,6 +5,8 @@
 #include <string.h>
 #include "AST.h"
 
+extern int stack_address;
+
 //GET THE HIGHEST LOWEST CURRENTLY UNUSED REGISTER
 int getReg();
 

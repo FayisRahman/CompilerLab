@@ -1,4 +1,7 @@
 begin
+    decl
+    enddecl
+
     read(a);
     c = 0;
     repeat

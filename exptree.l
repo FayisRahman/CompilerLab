@@ -9,26 +9,25 @@
 %%
 
 [0-9]+ {
-    
-    yylval.node = createTree(atoi(yytext), INT, NULL, LEAFNODE, NULL, NULL,NULL);
+
+    yylval.node = createTree(atoi(yytext), TYPE_INT, NULL, LEAFNODE, NULL, NULL,NULL);
     return NUM;
 }
 
-"begin" {
-    return begin;
-}
-
-"end" {
-    return end;
-}
+"begin" {return begin;}
+"end" {return end;}
+"decl" {return DECL;}
+"enddecl" {return ENDDECL;}
+"int" {return INT;}
+"str" {return STR;}
 
 "read" {
-    yylval.node = createTree(0, NONE, NULL, READNODE, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_NULL, NULL, READNODE, NULL, NULL,NULL);
     return READ;
 }
 
 "write" {
-    yylval.node = createTree(0, NONE, NULL, WRITENODE, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_NULL, NULL, WRITENODE, NULL, NULL,NULL);
     return WRITE;
 }
 
@@ -45,39 +44,28 @@
 "continue" {return CONTINUE;}
 
 [a-zA-Z][a-zA-Z0-9]* {
-    yylval.node = createTree(0, INT, yytext, LEAFNODE, NULL, NULL,NULL);
+    
+    yylval.node = createTree(atoi(yytext), TYPE_INT, NULL, LEAFNODE, NULL, NULL,NULL);
     return ID;
 }
 
-"+" {
-    return PLUS;
-}
-"-" {
-    return MINUS;
-}
-"/" {
-    return DIV;
-}
-"*" {
-    
-    return MUL;
-}
-"(" {
-    return '(';
+\"[^"\n]*\" {
+    yylval.string = (char*)malloc(sizeof(char)*32);
+    strcpy(yylval.string,yytext);
+    return STRING;
 }
 
-")" {
-    return ')';
-}
+"+" {return PLUS;}
+"-" {return MINUS;}
+"/" {return DIV;}
+"*" {return MUL;}
 
-";" {
-    return ';';
-}
+"(" {return '(';}
+")" {return ')';}
+";" {return ';';}
+"," {return ',';}
 
-"=" {
-    
-    return '=';
-}
+"=" {return '=';}
 
 ">=" { return GE; }
 "<=" { return LE; }

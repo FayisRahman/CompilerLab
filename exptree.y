@@ -5,6 +5,7 @@
     #include "reghandling.h"
     #include "AST.h"
     #include "evaluator.h"
+    #include "symbol_table.h"
 
     extern int yylex();
     extern FILE *yyin;
@@ -15,15 +16,21 @@
 
 %union{
     struct tnode* node;
-    char character;
+    char* string;
+    int integer;
+    struct Gsymbol* symbol;
 }
-%token<node> NUM ID WRITE READ
-%token begin end 
+%token<node> WRITE READ INT STR ID NUM
+%token<string>  STRING
+%token begin end DECL ENDDECL 
 %token PLUS MINUS DIV MUL 
 %token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK
 %token GT GE LT LE NE EQ 
 
-%type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt
+%type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt
+%type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Type
+%type<symbol>  Decl VarList
+%type DeclList Declarations
 
 %left  GT GE LT LE NE EQ
 %left PLUS MINUS
@@ -31,17 +38,18 @@
 
 %%
 
-Program : begin Slist end ';' {
-            $$ = $2;
-            head = $2;
+Program : begin Declarations Slist end ';' {
+            $$ = $3;
+            head = $3;
         }
         | begin end ';' {
             exit(0);
         }
         ;
 
+
 Slist   : Slist Stmt {
-            struct tnode* temp = createTree(0,NONE,NULL,CONNECTOR,$1, NULL, $2);
+            struct tnode* temp = createTree(0,TYPE_NULL,NULL,CONNECTOR,$1, NULL, $2);
             $$ = temp;
         }
         | Stmt {
@@ -49,17 +57,45 @@ Slist   : Slist Stmt {
         }
         ;
 
-InputStmt : READ '(' ID ')' ';' {
-            $1->left = $3;
-            $$ = $1;
-        }
-        ;
+Declarations    : DECL DeclList ENDDECL {stack_address = curr_stack_address;}
+                | DECL ENDDECL {stack_address = curr_stack_address;}
+                ;
 
-OutputStmt : WRITE '(' E ')' ';' {
-            $1->left = $3;
-            $$ = $1;
-        }
-        ;
+DeclList    : DeclList Decl 
+            | Decl
+            ;
+
+Decl        : Type VarList ';' {
+                Gsymbol* temp = $2;
+                while(temp){
+                    add_symbol(temp,$1->type);
+                }
+            }
+            ;   
+
+Type        : INT {$$ = createVarNode(TYPE_INT,NULL,NULL,NULL); }
+            | STR {$$ = createVarNode(TYPE_STRING,NULL,NULL,NULL); }
+            ;
+
+VarList     : VarList ',' ID {
+                Gsymbol* temp = create_symbol_id($3->varname,1);
+                $$ = append_symbol_id_list($1,temp);
+            }
+            | ID {
+                $$ = create_symbol_id($1->varname,1);
+            }
+
+InputStmt   : READ '(' ID ')' ';' {
+                $1->left = $3;
+                $$ = $1;
+            }
+            ;
+
+OutputStmt  : WRITE '(' E ')' ';' {
+                $1->left = $3;
+                $$ = $1;
+            }
+            ;
 
 AsgStmt : ID '=' E ';' {
             $$ = createTree(0,$1->type, "=", EQUAL,$1, NULL, $3);
@@ -125,29 +161,32 @@ E   : E PLUS E {
     }
     | E GT E {
         
-        $$ = createTree(0,BOOL,">",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,">",EXPRESSION,$1,NULL,$3);
     }
     | E LT E {
         
-        $$ = createTree(0,BOOL,"<",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"<",EXPRESSION,$1,NULL,$3);
     }
     | E GE E {
-        $$ = createTree(0,BOOL,">=",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,">=",EXPRESSION,$1,NULL,$3);
     }
     | E LE E {
-        $$ = createTree(0,BOOL,"<=",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"<=",EXPRESSION,$1,NULL,$3);
     }
     | E NE E {
-        $$ = createTree(0,BOOL,"!=",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"!=",EXPRESSION,$1,NULL,$3);
     }
     | E EQ E {
-        $$ = createTree(0,BOOL,"==",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"==",EXPRESSION,$1,NULL,$3);
     }
     | NUM {
-        $$ = $1;
+        $$ = createTree($<integer>1, TYPE_INT, NULL, LEAFNODE, NULL, NULL,NULL);
     }
     | ID {
-        $$ = $1;
+        $$ = createTree(0, TYPE_INT, $<string>1, LEAFNODE, NULL, NULL,NULL);
+    }
+    | STRING {
+        $$ = createTree(0, TYPE_INT, $<string>1, LEAFNODE, NULL, NULL,NULL);
     }
     ;
 %%

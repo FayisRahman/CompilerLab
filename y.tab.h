@@ -49,74 +49,86 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    NUM = 258,
-    ID = 259,
-    WRITE = 260,
-    READ = 261,
-    begin = 262,
-    end = 263,
-    PLUS = 264,
-    MINUS = 265,
-    DIV = 266,
-    MUL = 267,
-    IF = 268,
-    THEN = 269,
-    ELSE = 270,
-    ENDIF = 271,
-    WHILE = 272,
-    DO = 273,
-    ENDWHILE = 274,
-    REPEAT = 275,
-    UNTIL = 276,
-    CONTINUE = 277,
-    BREAK = 278,
-    GT = 279,
-    GE = 280,
-    LT = 281,
-    LE = 282,
-    NE = 283,
-    EQ = 284
+    WRITE = 258,
+    READ = 259,
+    INT = 260,
+    STR = 261,
+    ID = 262,
+    NUM = 263,
+    STRING = 264,
+    begin = 265,
+    end = 266,
+    DECL = 267,
+    ENDDECL = 268,
+    PLUS = 269,
+    MINUS = 270,
+    DIV = 271,
+    MUL = 272,
+    IF = 273,
+    THEN = 274,
+    ELSE = 275,
+    ENDIF = 276,
+    WHILE = 277,
+    DO = 278,
+    ENDWHILE = 279,
+    REPEAT = 280,
+    UNTIL = 281,
+    CONTINUE = 282,
+    BREAK = 283,
+    GT = 284,
+    GE = 285,
+    LT = 286,
+    LE = 287,
+    NE = 288,
+    EQ = 289
   };
 #endif
 /* Tokens.  */
-#define NUM 258
-#define ID 259
-#define WRITE 260
-#define READ 261
-#define begin 262
-#define end 263
-#define PLUS 264
-#define MINUS 265
-#define DIV 266
-#define MUL 267
-#define IF 268
-#define THEN 269
-#define ELSE 270
-#define ENDIF 271
-#define WHILE 272
-#define DO 273
-#define ENDWHILE 274
-#define REPEAT 275
-#define UNTIL 276
-#define CONTINUE 277
-#define BREAK 278
-#define GT 279
-#define GE 280
-#define LT 281
-#define LE 282
-#define NE 283
-#define EQ 284
+#define WRITE 258
+#define READ 259
+#define INT 260
+#define STR 261
+#define ID 262
+#define NUM 263
+#define STRING 264
+#define begin 265
+#define end 266
+#define DECL 267
+#define ENDDECL 268
+#define PLUS 269
+#define MINUS 270
+#define DIV 271
+#define MUL 272
+#define IF 273
+#define THEN 274
+#define ELSE 275
+#define ENDIF 276
+#define WHILE 277
+#define DO 278
+#define ENDWHILE 279
+#define REPEAT 280
+#define UNTIL 281
+#define CONTINUE 282
+#define BREAK 283
+#define GT 284
+#define GE 285
+#define LT 286
+#define LE 287
+#define NE 288
+#define EQ 289
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 16 "exptree.y"
+#line 17 "exptree.y"
 
     struct tnode* node;
-    char character;
+    char* string;
+    int integer;
+    struct Gsymbol* symbol;
 
-#line 120 "y.tab.h"
+#line 132 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
