@@ -2,7 +2,9 @@
     #include <stdio.h>
     #include <string.h>
     #include <stdlib.h>
-    #include "exptree.h"
+    #include "reghandling.h"
+    #include "AST.h"
+    #include "evaluator.h"
 
     extern int yylex();
     extern FILE *yyin;
@@ -15,27 +17,31 @@
     struct tnode* node;
     char character;
 }
-%token<node> PLUS MINUS DIV MUL NUM ID WRITE READ '=' GT GE LT LE NE EQ
-%token begin end IF then Else ENDIF WHILE DO ENDWHILE
+%token<node> NUM ID WRITE READ
+%token begin end 
+%token PLUS MINUS DIV MUL 
+%token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK
+%token GT GE LT LE NE EQ 
 
-%type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt 
+%type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt
 
+%left  GT GE LT LE NE EQ
 %left PLUS MINUS
 %left MUL DIV
 
 %%
 
-Program : begin Slist end {
+Program : begin Slist end ';' {
             $$ = $2;
             head = $2;
         }
-        | begin end {
+        | begin end ';' {
             exit(0);
         }
         ;
 
 Slist   : Slist Stmt {
-            struct tnode* temp = createTree(0,NONE,NULL,CONNECTOR,$1,$2);
+            struct tnode* temp = createTree(0,NONE,NULL,CONNECTOR,$1, NULL, $2);
             $$ = temp;
         }
         | Stmt {
@@ -56,47 +62,86 @@ OutputStmt : WRITE '(' E ')' ';' {
         ;
 
 AsgStmt : ID '=' E ';' {
-            $2->left = $1;
-            $2->right = $3;
-            $$ = $2;
+            $$ = createTree(0,$1->type, "=", EQUAL,$1, NULL, $3);
         }
         ;
 
-Stmt    : InputStmt { $$ = $1;}
-        | OutputStmt { $$ = $1;}
-        | AsgStmt { $$ = $1;}
+Stmt    : InputStmt         { $$ = $1; }
+        | OutputStmt        { $$ = $1; }
+        | AsgStmt           { $$ = $1; }
+        | Ifstmt            { $$ = $1; }
+        | Whilestmt         { $$ = $1; }
+        | DoWhilestmt       { $$ = $1; }
+        | RepeatUntiltstmt  { $$ = $1; }
+        | Jumpstmt          { $$ = $1; }
         ;
 
-Ifstmt  : IF '(' E ')' then Slist Else Slist ENDIF ';'
-        | IF '(' E ')' then Slist ENDIF ';'
+Ifstmt  : IF '(' E ')' THEN Slist ELSE Slist ENDIF ';' {
+            $$ = createIfNode($6,$3,$8);
+        }   
+        | IF '(' E ')' THEN Slist ENDIF ';' {
+            $$ = createIfNode($6,$3,NULL);
+        }
         ;
 
-Whilestmt   : WHILE '(' E ')' DO Slist ENDWHILE ';'
+Whilestmt   : WHILE '(' E ')' DO Slist ENDWHILE ';' {
+                $$ = createWhileNode($6,$3);
+            }
+            ;
+
+DoWhilestmt : DO Slist WHILE '(' E ')'';' {
+                $$ = createDoWhileNode($2,$5);
+            }
+            ;
+
+RepeatUntiltstmt    : REPEAT Slist UNTIL '(' E ')'';' {
+                        $$ = createDoWhileNode($2,$5);
+                    }
+                    ;
+
+Jumpstmt    : CONTINUE ';' {
+                $$ = createJumpNode(CONTINUENODE);
+            }
+            | BREAK ';' {
+                $$ = createJumpNode(BREAKNODE);
+            }
             ;
 
 
 E   : E PLUS E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+        $$ = createTree(0, $1->type, "+", OPERATOR,$1, NULL, $3);
     }
     | E MINUS E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+        $$ =  createTree(0, $1->type , "-", OPERATOR,$1, NULL, $3);
     }
     | E DIV E {
-        $2->left = $1;
-        $2->right = $3;
-        $$ = $2;
+        $$ = createTree(0, $1->type, "/", OPERATOR,$1, NULL, $3);
     }
     | E MUL E {
-        $2->left = $1;
-        $2->right = $3;
+        $$ = createTree(0, $1->type, "*", OPERATOR,$1, NULL, $3);
+    }
+    | '(' E ')' {
         $$ = $2;
     }
-    | '('E')'{
-        $$ = $2;
+    | E GT E {
+        
+        $$ = createTree(0,BOOL,">",EXPRESSION,$1,NULL,$3);
+    }
+    | E LT E {
+        
+        $$ = createTree(0,BOOL,"<",EXPRESSION,$1,NULL,$3);
+    }
+    | E GE E {
+        $$ = createTree(0,BOOL,">=",EXPRESSION,$1,NULL,$3);
+    }
+    | E LE E {
+        $$ = createTree(0,BOOL,"<=",EXPRESSION,$1,NULL,$3);
+    }
+    | E NE E {
+        $$ = createTree(0,BOOL,"!=",EXPRESSION,$1,NULL,$3);
+    }
+    | E EQ E {
+        $$ = createTree(0,BOOL,"==",EXPRESSION,$1,NULL,$3);
     }
     | NUM {
         $$ = $1;
@@ -104,12 +149,6 @@ E   : E PLUS E {
     | ID {
         $$ = $1;
     }
-    | E GT E 
-    | E LT E 
-    | E GE E 
-    | E LE E 
-    | E NE E 
-    | E EQ E;
     ;
 %%
 
@@ -151,12 +190,12 @@ void yyerror(char* s){
 
 void postfixPrint(struct tnode* head){
     if(!head)return;
-    if(!head->left && !head->right){
+    if(!head->middle && !head->right){
         if (head->varname != NULL) printf("%s ", head->varname);
         else printf("%d ", head->val);
         return;
     }
-    postfixPrint(head->left);
+    postfixPrint(head->middle);
     postfixPrint(head->right);
     printf("%s ", head->varname);
 }
@@ -166,10 +205,10 @@ void postfixPrint(struct tnode* head){
 int main() {
     yyin = fopen("a.txt", "r");
     yyparse();
-    FILE* fptr = openFile("a.xsm");
-    makeHeader(fptr);
-    int a = codeGen(head,fptr,CONNECTOR);
-    exitFooter(fptr);
-    /* codeIntrepret(head,CONNECTOR); */
+    FILE* fptr = fopen("a.xsm", "w");
+    make_header(fptr);
+    codeGen(head,0,0,fptr);
+    exit_footer(fptr);
+    /* codeIntrepret(head); */
     return 0;
 }

@@ -49,40 +49,74 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    PLUS = 258,
-    MINUS = 259,
-    DIV = 260,
-    MUL = 261,
-    NUM = 262,
-    ID = 263,
-    WRITE = 264,
-    READ = 265,
-    begin = 266,
-    end = 267
+    NUM = 258,
+    ID = 259,
+    WRITE = 260,
+    READ = 261,
+    begin = 262,
+    end = 263,
+    PLUS = 264,
+    MINUS = 265,
+    DIV = 266,
+    MUL = 267,
+    IF = 268,
+    THEN = 269,
+    ELSE = 270,
+    ENDIF = 271,
+    WHILE = 272,
+    DO = 273,
+    ENDWHILE = 274,
+    REPEAT = 275,
+    UNTIL = 276,
+    CONTINUE = 277,
+    BREAK = 278,
+    GT = 279,
+    GE = 280,
+    LT = 281,
+    LE = 282,
+    NE = 283,
+    EQ = 284
   };
 #endif
 /* Tokens.  */
-#define PLUS 258
-#define MINUS 259
-#define DIV 260
-#define MUL 261
-#define NUM 262
-#define ID 263
-#define WRITE 264
-#define READ 265
-#define begin 266
-#define end 267
+#define NUM 258
+#define ID 259
+#define WRITE 260
+#define READ 261
+#define begin 262
+#define end 263
+#define PLUS 264
+#define MINUS 265
+#define DIV 266
+#define MUL 267
+#define IF 268
+#define THEN 269
+#define ELSE 270
+#define ENDIF 271
+#define WHILE 272
+#define DO 273
+#define ENDWHILE 274
+#define REPEAT 275
+#define UNTIL 276
+#define CONTINUE 277
+#define BREAK 278
+#define GT 279
+#define GE 280
+#define LT 281
+#define LE 282
+#define NE 283
+#define EQ 284
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 14 "exptree.y"
+#line 16 "exptree.y"
 
     struct tnode* node;
     char character;
 
-#line 86 "y.tab.h"
+#line 120 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
