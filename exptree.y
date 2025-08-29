@@ -191,7 +191,7 @@ E   : E PLUS E {
     }
     | ID {
         Gsymbol* temp = find_symbol($1->varname);
-        $$ = createTree(0, temp->type, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
+        $$ = createTree(0, TYPE_VAR, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
     }
     | STRING {
         $$ = createTree(0, TYPE_STRING, $1, LEAFNODE,NULL, NULL, NULL,NULL);

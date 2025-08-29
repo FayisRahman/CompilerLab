@@ -1812,7 +1812,7 @@ yyreduce:
 #line 192 "exptree.y"
          {
         Gsymbol* temp = find_symbol((yyvsp[0].node)->varname);
-        (yyval.node) = createTree(0, temp->type, (yyvsp[0].node)->varname, LEAFNODE, temp,NULL, NULL,NULL);
+        (yyval.node) = createTree(0, TYPE_VAR, (yyvsp[0].node)->varname, LEAFNODE, temp,NULL, NULL,NULL);
     }
 #line 1818 "y.tab.c"
     break;

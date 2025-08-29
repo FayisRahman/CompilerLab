@@ -147,12 +147,12 @@ int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	if(!t)return -1;
 	if(!t->left && !t->right){
 		if(t->varname != NULL){
-			if(t->type != TYPE_STRING){
+			if(t->type == TYPE_VAR){
 				Gsymbol* ptr = find_symbol(t->varname);
 				int addr = ptr->binding;
 				fprintf(fptr, "MOV R%d, %d\n", p, addr);
 				fprintf(fptr, "MOV R%d, [R%d]\n", p, p);
-			}else{
+			}else if(t->type == TYPE_STRING){
 				fprintf(fptr, "MOV R%d, %s\n", p, t->varname);
 			}
 		}else{

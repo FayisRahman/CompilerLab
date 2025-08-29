@@ -903,7 +903,7 @@ YY_RULE_SETUP
 #line 46 "exptree.l"
 {
     
-    yylval.node = createTree(0, TYPE_INT, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_VAR, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
     return ID;
 }
 	YY_BREAK

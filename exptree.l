@@ -45,7 +45,7 @@
 
 [a-zA-Z][a-zA-Z0-9]* {
     
-    yylval.node = createTree(0, TYPE_INT, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_VAR, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
     return ID;
 }
 

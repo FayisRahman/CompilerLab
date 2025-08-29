@@ -5,12 +5,14 @@ begin
     enddecl
 
     read(a);
-    c = 0;
+    read(b);
+    read(c);
     repeat
         hey = "heuu";
         name = "jhwjhd";
         read(a);
         write("hello");
+        write(name);
         write(a);
         b = b + a;
     until(a != 10);

@@ -37,6 +37,7 @@ enum DataType {
     TYPE_INT,
     TYPE_STRING,
     TYPE_BOOL,
+    TYPE_VAR,
 };
 
 

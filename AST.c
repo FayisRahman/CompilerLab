@@ -9,7 +9,7 @@ struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol
 	if(nodeType == OPERATOR || nodeType == EQUAL){
         if(get_type(l->Gentry) == TYPE_INT || get_type(l->Gentry) == TYPE_STRING){
             if(get_type(l->Gentry) != get_type(l->Gentry)){
-                printf("Error: Type Mismatch %s->%d and %s->%d\n",l->varname,l->type,r->varname,r->type);
+                printf("Error: Type Mismatch %s->%d and %s->%d\n",l->varname,get_type(l->Gentry),r->varname,get_type(l->Gentry));
                 exit(1);
             }
         }
