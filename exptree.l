@@ -10,7 +10,7 @@
 
 [0-9]+ {
 
-    yylval.node = createTree(atoi(yytext), TYPE_INT, NULL, LEAFNODE, NULL, NULL,NULL);
+    yylval.node = createTree(atoi(yytext), TYPE_INT, NULL, LEAFNODE, NULL, NULL, NULL,NULL);
     return NUM;
 }
 
@@ -22,12 +22,12 @@
 "str" {return STR;}
 
 "read" {
-    yylval.node = createTree(0, TYPE_NULL, NULL, READNODE, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_NULL, NULL, READNODE, NULL, NULL, NULL,NULL);
     return READ;
 }
 
 "write" {
-    yylval.node = createTree(0, TYPE_NULL, NULL, WRITENODE, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_NULL, NULL, WRITENODE, NULL, NULL, NULL,NULL);
     return WRITE;
 }
 
@@ -45,13 +45,15 @@
 
 [a-zA-Z][a-zA-Z0-9]* {
     
-    yylval.node = createTree(atoi(yytext), TYPE_INT, NULL, LEAFNODE, NULL, NULL,NULL);
+    yylval.node = createTree(0, TYPE_INT, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
     return ID;
 }
 
 \"[^"\n]*\" {
-    yylval.string = (char*)malloc(sizeof(char)*32);
-    strcpy(yylval.string,yytext);
+    size_t len = strlen(yytext);
+    yylval.string = malloc(len + 1);
+    if (!yylval.string) { perror("malloc"); exit(1); }
+    strcpy(yylval.string, yytext);
     return STRING;
 }
 

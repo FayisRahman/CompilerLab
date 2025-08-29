@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "reghandling.h"
+#include "symbol_table.h"
 #include "AST.h"
 
 #define MAX_LABEL 1000
@@ -142,13 +143,18 @@ int boolean_expression_codegen(struct tnode* t,FILE* fptr){
 
 int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	int p,q;
+	p = getReg();
 	if(!t)return -1;
 	if(!t->left && !t->right){
-		p = getReg();
 		if(t->varname != NULL){
-			int addr = 4096 + t->varname[0] - 'a';
-			fprintf(fptr, "MOV R%d, %d\n", p, addr);
-			fprintf(fptr, "MOV R%d, [R%d]\n", p, p);
+			if(t->type != TYPE_STRING){
+				Gsymbol* ptr = find_symbol(t->varname);
+				int addr = ptr->binding;
+				fprintf(fptr, "MOV R%d, %d\n", p, addr);
+				fprintf(fptr, "MOV R%d, [R%d]\n", p, p);
+			}else{
+				fprintf(fptr, "MOV R%d, %s\n", p, t->varname);
+			}
 		}else{
 			fprintf(fptr, "MOV R%d, %d\n", p, t->val);
 		}
@@ -173,7 +179,8 @@ void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 
 	int p,q;
 	p = getReg();
-	int addr = 4096 + t->left->varname[0] - 'a';
+	Gsymbol* ptr = find_symbol(t->left->varname);
+	int addr = ptr->binding;
 	fprintf(fptr, "MOV R%d, %d\n", p, addr);
 	q = arithemetic_expression_codegen(t->right, fptr);
 	fprintf(fptr, "MOV [R%d], R%d\n", p, q);
@@ -185,9 +192,9 @@ void read_code_to_addr(FILE* fptr, char* var){
 	fprintf(fptr, "MOV SP, %d\n", stack_address);
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
-		freeReg();
 	}
-	int addr = 4096 + var[0] - 'a';
+	Gsymbol* ptr = find_symbol(var);
+	int addr = ptr->binding;
 	int p = getReg();
 	fprintf(fptr, "MOV R%d, \"Read\"\n",p);
 	fprintf(fptr, "PUSH R%d\n",p);
@@ -206,7 +213,6 @@ void read_code_to_addr(FILE* fptr, char* var){
 	freeReg();
 	for(int i=regCount-1;i>=0;i--){
 		fprintf(fptr, "POP R%d\n",i);
-		getReg();
 	}	
 }
 
@@ -214,9 +220,9 @@ void write_code_from_addr(FILE* fptr, tnode* t){
 	fprintf(fptr, "MOV SP, 4122\n");
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
-		freeReg();
 	}
-	int addr = 4096 + t->varname[0] - 'a';
+	Gsymbol* ptr = find_symbol(t->varname);
+	int addr = ptr->binding;
 	int p = getReg();
 	fprintf(fptr, "MOV R%d, \"Write\"\n",p);
 	fprintf(fptr, "PUSH R%d\n", p);
@@ -235,7 +241,6 @@ void write_code_from_addr(FILE* fptr, tnode* t){
 	fprintf(fptr, "POP R%d\n", p);
 	freeReg();
 	for(int i=regCount-1;i>=0;i--){
-		getReg();
 		fprintf(fptr, "POP R%d\n",i);
 	}	
 }
@@ -244,7 +249,6 @@ void write_code_from_reg(FILE* fptr, int regNo){
 	fprintf(fptr, "MOV SP, %d\n",stack_address);
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
-		freeReg();
 	}
 	int p = getReg();
 	fprintf(fptr, "MOV R%d, \"Write\"\n",p);
@@ -263,7 +267,6 @@ void write_code_from_reg(FILE* fptr, int regNo){
 	freeReg();
 	for(int i=regCount-1;i>=0;i--){
 		fprintf(fptr, "POP R%d\n",i);
-		getReg();
 	}	
 }
 

@@ -3,12 +3,13 @@
 #include <string.h>
 
 #include "AST.h"
+#include "symbol_table.h"
 
-struct tnode* createTree(int val, int type, char* c, int nodeType, struct tnode *l, struct tnode *m,struct tnode *r){
+struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r){
 	if(nodeType == OPERATOR || nodeType == EQUAL){
-        if(l->type == TYPE_INT || l->type == TYPE_STRING){
-            if(l->type != r->type){
-                printf("type mismatch");
+        if(get_type(l->Gentry) == TYPE_INT || get_type(l->Gentry) == TYPE_STRING){
+            if(get_type(l->Gentry) != get_type(l->Gentry)){
+                printf("Error: Type Mismatch %s->%d and %s->%d\n",l->varname,l->type,r->varname,r->type);
                 exit(1);
             }
         }
@@ -21,6 +22,7 @@ struct tnode* createTree(int val, int type, char* c, int nodeType, struct tnode 
     if(c != NULL) temp->varname = strdup(c);
     else temp->varname = NULL;
     temp->nodetype = nodeType;
+    temp->Gentry = NULL;
     temp->left = l;
     temp->middle = m;
     temp->right = r;
@@ -29,35 +31,35 @@ struct tnode* createTree(int val, int type, char* c, int nodeType, struct tnode 
 
 struct tnode* createIfNode(struct tnode* l,struct tnode* m, struct tnode* r){
 	if(m->type == TYPE_BOOL){
-		return createTree(0, TYPE_NULL, NULL, IFNODE, l, m, r);
+		return createTree(0, TYPE_NULL, NULL, IFNODE,NULL, l, m, r);
     }else{
-		printf("Type mismatch");
+		printf("Error: Type mismatch\n");
 		exit(1);
 	}
 }
 
 struct tnode* createWhileNode(struct tnode* l,struct tnode* m){
 	if(m->type == TYPE_BOOL){
-		return createTree(0, TYPE_NULL, NULL, WHILENODE, l, m,NULL);
+		return createTree(0, TYPE_NULL, NULL, WHILENODE,NULL, l, m,NULL);
     }else{
-		printf("Type mismatch");
-		exit(1);
+		  printf("Error: Type mismatch\n");
+		  exit(1);
 	}
 }
 
 struct tnode* createDoWhileNode(struct tnode* l,struct tnode* m){
 	if(m->type == TYPE_BOOL){
-		return createTree(0, TYPE_NULL, NULL, DOWHILENODE, l, m,NULL);
+		return createTree(0, TYPE_NULL, NULL, DOWHILENODE,NULL, l, m,NULL);
     }else{
-		printf("Type mismatch");
-		exit(1);
+		  printf("Error: Type mismatch\n");
+		  exit(1);
 	}
 }
 
 struct tnode* createJumpNode(int nodeType){
-    return createTree(0, TYPE_NULL, NULL, nodeType, NULL, NULL,NULL);
+    return createTree(0, TYPE_NULL, NULL, nodeType,NULL, NULL, NULL,NULL);
 }
 
 struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r){
-    return createTree(0, type, c, VARNODE, l, NULL,r);
+    return createTree(0, type, c, VARNODE,NULL, l, NULL,r);
 }

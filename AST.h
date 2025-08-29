@@ -40,7 +40,7 @@ enum DataType {
 };
 
 
-struct tnode* createTree(int val, int type, char* c, int nodeType, struct tnode *l, struct tnode *m,struct tnode *r);
+struct tnode* createTree(int val, int type, char* c, int nodeType, struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r);
 
 struct tnode* createWhileNode(struct tnode* l,struct tnode* m);
 
@@ -52,7 +52,6 @@ struct tnode* createIfNode(struct tnode* l,struct tnode* m, struct tnode* r);
 struct tnode* createJumpNode(int nodeType);
 
 struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r);
-
 
 
 #endif

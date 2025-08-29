@@ -1,13 +1,18 @@
 begin
     decl
+        int a,b,c;
+        str name,hey;
     enddecl
 
     read(a);
     c = 0;
     repeat
+        hey = "heuu";
+        name = "jhwjhd";
         read(a);
-        c = c + 1;
-        if(c > 1) then write(c); break; endif;
+        write("hello");
+        write(name);
+        write(a);
         b = b + a;
     until(a != 10);
 

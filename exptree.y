@@ -49,7 +49,7 @@ Program : begin Declarations Slist end ';' {
 
 
 Slist   : Slist Stmt {
-            struct tnode* temp = createTree(0,TYPE_NULL,NULL,CONNECTOR,$1, NULL, $2);
+            struct tnode* temp = createTree(0,TYPE_NULL,NULL,CONNECTOR,NULL,$1, NULL, $2);
             $$ = temp;
         }
         | Stmt {
@@ -67,8 +67,12 @@ DeclList    : DeclList Decl
 
 Decl        : Type VarList ';' {
                 Gsymbol* temp = $2;
+                Gsymbol* temp1 = $2;
                 while(temp){
+                    temp1 = temp->next;
+                    temp->next = NULL;
                     add_symbol(temp,$1->type);
+                    temp = temp1;
                 }
             }
             ;   
@@ -79,10 +83,12 @@ Type        : INT {$$ = createVarNode(TYPE_INT,NULL,NULL,NULL); }
 
 VarList     : VarList ',' ID {
                 Gsymbol* temp = create_symbol_id($3->varname,1);
-                $$ = append_symbol_id_list($1,temp);
+                $$ = append_symbol_id_list($1,temp);         
             }
             | ID {
-                $$ = create_symbol_id($1->varname,1);
+                Gsymbol* temp = create_symbol_id($1->varname,1);
+                $1->Gentry = temp;
+                $$ = temp;
             }
 
 InputStmt   : READ '(' ID ')' ';' {
@@ -98,7 +104,8 @@ OutputStmt  : WRITE '(' E ')' ';' {
             ;
 
 AsgStmt : ID '=' E ';' {
-            $$ = createTree(0,$1->type, "=", EQUAL,$1, NULL, $3);
+            int type = get_type($1->Gentry);
+            $$ = createTree(0,type, "=", EQUAL,NULL,$1, NULL, $3);
         }
         ;
 
@@ -145,48 +152,49 @@ Jumpstmt    : CONTINUE ';' {
 
 
 E   : E PLUS E {
-        $$ = createTree(0, $1->type, "+", OPERATOR,$1, NULL, $3);
+        $$ = createTree(0, $1->type, "+", OPERATOR,NULL,$1, NULL, $3);
     }
     | E MINUS E {
-        $$ =  createTree(0, $1->type , "-", OPERATOR,$1, NULL, $3);
+        $$ =  createTree(0, $1->type , "-", OPERATOR,NULL,$1, NULL, $3);
     }
     | E DIV E {
-        $$ = createTree(0, $1->type, "/", OPERATOR,$1, NULL, $3);
+        $$ = createTree(0, $1->type, "/", OPERATOR,NULL,$1, NULL, $3);
     }
     | E MUL E {
-        $$ = createTree(0, $1->type, "*", OPERATOR,$1, NULL, $3);
+        $$ = createTree(0, $1->type, "*", OPERATOR,NULL,$1, NULL, $3);
     }
     | '(' E ')' {
         $$ = $2;
     }
     | E GT E {
         
-        $$ = createTree(0,TYPE_BOOL,">",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,">",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E LT E {
         
-        $$ = createTree(0,TYPE_BOOL,"<",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"<",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E GE E {
-        $$ = createTree(0,TYPE_BOOL,">=",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,">=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E LE E {
-        $$ = createTree(0,TYPE_BOOL,"<=",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"<=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E NE E {
-        $$ = createTree(0,TYPE_BOOL,"!=",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"!=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E EQ E {
-        $$ = createTree(0,TYPE_BOOL,"==",EXPRESSION,$1,NULL,$3);
+        $$ = createTree(0,TYPE_BOOL,"==",EXPRESSION,NULL,$1,NULL,$3);
     }
     | NUM {
-        $$ = createTree($<integer>1, TYPE_INT, NULL, LEAFNODE, NULL, NULL,NULL);
+        $$ = createTree($1->val, TYPE_INT, NULL, LEAFNODE, NULL,NULL, NULL,NULL);
     }
     | ID {
-        $$ = createTree(0, TYPE_INT, $<string>1, LEAFNODE, NULL, NULL,NULL);
+        Gsymbol* temp = find_symbol($1->varname);
+        $$ = createTree(0, temp->type, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
     }
     | STRING {
-        $$ = createTree(0, TYPE_INT, $<string>1, LEAFNODE, NULL, NULL,NULL);
+        $$ = createTree(0, TYPE_STRING, $1, LEAFNODE,NULL, NULL, NULL,NULL);
     }
     ;
 %%
@@ -244,6 +252,7 @@ void postfixPrint(struct tnode* head){
 int main() {
     yyin = fopen("a.txt", "r");
     yyparse();
+    print_symbol_table();
     FILE* fptr = fopen("a.xsm", "w");
     make_header(fptr);
     codeGen(head,0,0,fptr);
