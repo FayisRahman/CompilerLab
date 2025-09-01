@@ -11,33 +11,38 @@ typedef struct tnode {
     int type;       // type of variable
     char* varname;  // name of a variable for ID nodes
     int nodetype;   // information about non-leaf nodes - read/write/connector/+/* etc.
-    struct Gsymbol *Gentry;     // pointer to GST entry for global variables and functions
+    struct Gsymbol *Gentry;    // pointer to GST entry for global variables and functions
     struct tnode *left,*right,*middle;  // left and right branches
+    struct DimNode* dimlist;
 } tnode;
 
 enum NodeType {
-    READNODE,
-    WRITENODE,
-    CONNECTOR,
-    OPERATOR,
-    EQUAL,
-    IFNODE,
-    EXPRESSION,
-    WHILENODE,
-    DOWHILENODE,
-    BREAKNODE,
-    CONTINUENODE,
-    VARNODE,
-    LEAFNODE,
-    
+    READNODE,           // 0
+    WRITENODE,          // 1
+    CONNECTOR,          // 2
+    OPERATOR,           // 3
+    EQUAL,              // 4
+    IFNODE,             // 5
+    EXPRESSION,         // 6
+    WHILENODE,          // 7
+    DOWHILENODE,        // 8
+    BREAKNODE,          // 9
+    CONTINUENODE,       // 10
+    VARNODE,            // 11
+    LEAFNODE,           // 12
+    ADDRNODE,           // 13
+    PTRNODE,            // 14   
 };
 
 enum DataType {
-    TYPE_NULL,
-    TYPE_INT,
-    TYPE_STRING,
-    TYPE_BOOL,
-    TYPE_VAR,
+    TYPE_NULL,      // 0
+    TYPE_INT,       // 1
+    TYPE_STRING,    // 2
+    TYPE_BOOL,      // 3
+    TYPE_VAR,       // 4 
+    TYPE_ARR,       // 5
+    TYPE_PTR,       // 6
+    TYPE_ADDR,      // 7
 };
 
 
@@ -54,5 +59,5 @@ struct tnode* createJumpNode(int nodeType);
 
 struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r);
 
-
+void check_data_types(int t,int q,int type);
 #endif

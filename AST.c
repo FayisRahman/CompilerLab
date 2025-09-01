@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "AST.h"
-#include "symbol_table.h"
 
 struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r){
 	if(nodeType == OPERATOR || nodeType == EQUAL){
@@ -62,4 +61,11 @@ struct tnode* createJumpNode(int nodeType){
 
 struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r){
     return createTree(0, type, c, VARNODE,NULL, l, NULL,r);
+}
+
+void check_data_types(int t,int q,int type){
+    if(t!=q || t != type){
+        printf("Error: assignment with different data types\n");
+        exit(1);
+    }
 }

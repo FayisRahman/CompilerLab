@@ -6,3 +6,38 @@ Usage
  ./xsm [ -l <path to library> ] -e <path to program> [--debug]
 
 Note: Paths must be relative
+
+
+There are four script in this XSM_EXPL FOLDER
+
+script.sh
+batch.sh
+seg_batch.sh
+label_translation/label.sh (it is inside the label_translation folder)
+
+
+First we run batch.sh or seg_batch.sh based on the context
+
+That is: 
+    1. If you are recieving any segmentation fault you can run the seg_batch.sh script to get the file and line no. 
+        on which segementation fault occurred.
+
+    2. If you have have no segmentation fault issues then running the batch.sh is fine else if running seg_batch.sh it will show memory leaks 
+        because i am not freeing the AST, DimNodes and GST as freeing memory for this program is of no importance as far as the project is concerned.
+
+After that run the script.sh script because after compilation by batch.sh or seg_batch.sh we get the executable file "sol.out" 
+which on running will generate the contents to a.xsm file but it will contain Labels like L0,L1,L2 but the xsm compiler will not handle labels which without 
+processing will causing error. So to avoid that I have created another folder called label_translation which will contain a lex program label.l that handles 
+all labels and translates all the labels present on the (JMP,JZ,JNZ) XSM instruction to the corresponding address values.
+This file contains a script label.sh which will generate an executable file named "translator.out" and is automaticaly run by the label.sh script
+
+What the script.sh does is that it will run the sol.out and then runs the label.sh script to translate the labels to corresponding address values
+and thus making it usable by the XSM compiler.
+
+Which then can be run using the command
+
+ ./xsm -l library.lib -e a.xsm
+
+
+
+

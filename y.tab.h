@@ -80,7 +80,8 @@ extern int yydebug;
     LT = 286,
     LE = 287,
     NE = 288,
-    EQ = 289
+    EQ = 289,
+    MOD = 290
   };
 #endif
 /* Tokens.  */
@@ -116,19 +117,21 @@ extern int yydebug;
 #define LE 287
 #define NE 288
 #define EQ 289
+#define MOD 290
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 17 "exptree.y"
+#line 18 "exptree.y"
 
     struct tnode* node;
     char* string;
     int integer;
     struct Gsymbol* symbol;
+    struct DimNode* DimList;
 
-#line 132 "y.tab.h"
+#line 135 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "symbol_table.h"
-#include "AST.h"
 
 int curr_stack_address = 4095;
 struct Gsymbol *top = NULL;
@@ -17,6 +16,11 @@ void add_symbol(Gsymbol *id, int type) {
     id->type = type;
     id->binding = curr_stack_address + 1;
     curr_stack_address += id->size;
+
+    if(curr_stack_address > 5119){
+        printf("Error: Memory Overflow\n");
+        exit(0);
+    }
 
     if (!top) {
         top = id;
@@ -92,12 +96,13 @@ void print_symbol_table() {
         return;
     }
 
-    printf("\n%-20s %-10s %-10s %-10s\n", "Name", "Type", "Size", "Binding");
+    printf("\n%-20s %-10s %-10s %-10s %-10s\n", "Name","varType" , "Type", "Size", "Binding");
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d\n", 
+        printf("%-20s %-10d %-10d %-10d %-10d\n", 
                temp->name, 
+               temp->varType,
                temp->type, 
                temp->size, 
                temp->binding);
@@ -114,12 +119,13 @@ void print_symbol_list(Gsymbol* t) {
         return;
     }
 
-    printf("\n%-20s %-10s %-10s %-10s\n", "Name", "Type", "Size", "Binding");
+    printf("\n%-20s %-10s %-10s %-10s %-10s\n", "Name","varType","Type", "Size", "Binding");
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d\n", 
+        printf("%-20s %-10d %-10d %-10d %-10d\n", 
                temp->name, 
+               temp->varType,
                temp->type, 
                temp->size, 
                temp->binding);

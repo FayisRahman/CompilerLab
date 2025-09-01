@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./sol
+./sol.out
 cd label_translation
-./script.sh
+./label.sh
 cd ..

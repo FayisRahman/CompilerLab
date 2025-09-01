@@ -6,6 +6,7 @@
     #include "AST.h"
     #include "evaluator.h"
     #include "symbol_table.h"
+    #include "dim_node.h"
 
     extern int yylex();
     extern FILE *yyin;
@@ -19,6 +20,7 @@
     char* string;
     int integer;
     struct Gsymbol* symbol;
+    struct DimNode* DimList;
 }
 %token<node> WRITE READ INT STR ID NUM
 %token<string>  STRING
@@ -29,12 +31,13 @@
 
 %type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt
 %type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Type
-%type<symbol>  Decl VarList
+%type<symbol>  Decl VarList Var
+%type<DimList> DimList DimAccess
 %type DeclList Declarations
 
 %left  GT GE LT LE NE EQ
 %left PLUS MINUS
-%left MUL DIV
+%left MUL DIV MOD
 
 %%
 
@@ -81,19 +84,58 @@ Type        : INT {$$ = createVarNode(TYPE_INT,NULL,NULL,NULL); }
             | STR {$$ = createVarNode(TYPE_STRING,NULL,NULL,NULL); }
             ;
 
-VarList     : VarList ',' ID {
-                Gsymbol* temp = create_symbol_id($3->varname,1);
-                $$ = append_symbol_id_list($1,temp);         
+VarList     : VarList ',' Var {
+                $$ = append_symbol_id_list($1,$3);         
             }
-            | ID {
-                Gsymbol* temp = create_symbol_id($1->varname,1);
-                $1->Gentry = temp;
-                $$ = temp;
+            | Var {
+                $$ = $1;
             }
+            ;
 
-InputStmt   : READ '(' ID ')' ';' {
+Var     : ID DimList {
+            Gsymbol* temp = create_symbol_id_with_dims($1->varname, $2);
+            $1->Gentry = temp;
+            $1->type = TYPE_ARR;
+            $1->Gentry->varType = TYPE_ARR;
+            if(!$2){
+                $1->type = TYPE_VAR;
+                $1->Gentry->varType = TYPE_VAR;
+            }
+            $$ = temp;
+        }
+        | MUL ID {
+            Gsymbol* temp = create_symbol_id($2->varname, 2);
+            $2->Gentry = temp;
+            $2->type = TYPE_PTR;
+            temp->varType = TYPE_PTR;
+            $$ = temp;
+        } //here i used MUL because lex returnes MUL when the it captures '*' 
+        ;
+
+DimList : DimList '[' NUM ']' {
+            $$ = append_dim($1, $3->val);
+        }
+        | /* empty */   { $$ = create_dimlist(NULL); }
+        ;
+
+InputStmt   : READ '(' ID  ')' ';' {
+                Gsymbol* temp = find_symbol($3->varname);
+                $3->Gentry = temp;
                 $1->left = $3;
                 $$ = $1;
+            }
+            | READ '(' ID DimAccess ')' ';' {
+                Gsymbol* temp = find_symbol($3->varname);
+                $3->Gentry = temp;
+                check_not_out_of_bounds($4,$3->Gentry->dimlist);
+                $1->left = $3;
+                $3->dimlist = $4;
+                $$ = createTree(0,TYPE_NULL, "Read", READNODE,NULL,$3, NULL, NULL);
+            }
+            | READ '(' MUL ID ')' ';' {
+                Gsymbol* entry = find_symbol($4->varname);
+                tnode* temp = createTree(0, TYPE_PTR, "*", PTRNODE, entry,$4, NULL,NULL);
+                $$ = createTree(0, TYPE_NULL, "Read", READNODE,NULL,temp, NULL, NULL);
             }
             ;
 
@@ -104,8 +146,35 @@ OutputStmt  : WRITE '(' E ')' ';' {
             ;
 
 AsgStmt : ID '=' E ';' {
-            int type = get_type($1->Gentry);
-            $$ = createTree(0,type, "=", EQUAL,NULL,$1, NULL, $3);
+            Gsymbol* temp = find_symbol($1->varname);
+            if(temp->varType != TYPE_VAR && temp->varType != TYPE_PTR){
+                printf("Error: %s is not of variable type\n",$1->varname);
+                exit(1);
+            }
+            check_data_types(temp->type,$3->type,temp->type);
+            $$ = createTree(0,TYPE_VAR, "=", EQUAL,temp,$1, NULL, $3);
+        }
+        | ID DimAccess '=' E ';'{
+            Gsymbol* temp = find_symbol($1->varname);
+            if(temp->varType != TYPE_ARR){
+                printf("Error: %s is not of array type\n",$1->varname);
+                exit(1);
+            }
+            check_data_types(temp->type,$4->type,temp->type);
+            $1->Gentry = temp;
+            $1->dimlist = $2;
+            check_not_out_of_bounds($2,$1->Gentry->dimlist);
+            $$ = createTree(0,TYPE_ARR, "=", EQUAL,$1->Gentry,$1, NULL, $4);
+        }
+        | MUL ID '=' E ';' {  //here i used MUL because lex returnes MUL when the it captures '*'
+            Gsymbol* temp = find_symbol($2->varname);
+            if(temp->varType != TYPE_PTR){
+                printf("Error: %s is not of pointer type\n",$2->varname);
+                exit(1);
+            }
+            check_data_types(temp->type,$4->type,temp->type);
+            tnode* t = createTree(0,TYPE_PTR, "*", PTRNODE, temp,$2, NULL, NULL);
+            $$ = createTree(0,TYPE_PTR, "=", EQUAL,NULL,t, NULL, $4);
         }
         ;
 
@@ -132,7 +201,7 @@ Whilestmt   : WHILE '(' E ')' DO Slist ENDWHILE ';' {
             }
             ;
 
-DoWhilestmt : DO Slist WHILE '(' E ')'';' {
+DoWhilestmt : DO Slist WHILE '(' E ')' ';' {
                 $$ = createDoWhileNode($2,$5);
             }
             ;
@@ -152,51 +221,99 @@ Jumpstmt    : CONTINUE ';' {
 
 
 E   : E PLUS E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "+", OPERATOR,NULL,$1, NULL, $3);
     }
     | E MINUS E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ =  createTree(0, $1->type , "-", OPERATOR,NULL,$1, NULL, $3);
     }
     | E DIV E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "/", OPERATOR,NULL,$1, NULL, $3);
     }
     | E MUL E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "*", OPERATOR,NULL,$1, NULL, $3);
+    }
+    | E MOD E {
+        check_data_types($1->type,$3->type,TYPE_INT);
+        $$ = createTree(0, $1->type, "%", OPERATOR,NULL,$1, NULL, $3);
     }
     | '(' E ')' {
         $$ = $2;
     }
     | E GT E {
-        
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,">",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E LT E {
-        
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,"<",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E GE E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,">=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E LE E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,"<=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E NE E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,"!=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E EQ E {
+        check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,"==",EXPRESSION,NULL,$1,NULL,$3);
-    }
-    | NUM {
-        $$ = createTree($1->val, TYPE_INT, NULL, LEAFNODE, NULL,NULL, NULL,NULL);
     }
     | ID {
         Gsymbol* temp = find_symbol($1->varname);
-        $$ = createTree(0, TYPE_VAR, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
+        if(temp->varType != TYPE_VAR && temp->varType != TYPE_PTR){
+            printf("Error: %s is not of variable type\n",$1->varname);
+            exit(1);
+        }
+        $$ = createTree(0, temp->type, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
+    }
+    | ID DimAccess {
+        Gsymbol* temp = find_symbol($1->varname);
+        if(!$2){
+            if(temp->varType != TYPE_ARR){
+                printf("Error: %s is of array type but using it as variable type here\n",$1->varname);
+                exit(1);
+            }
+        }
+        $1->Gentry = temp;
+        check_not_out_of_bounds($2,$1->Gentry->dimlist);
+        int val = get_pos($2,$1->Gentry->dimlist);
+        $$ = createTree(val, temp->type, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
+        $$->dimlist = $2;
+    }
+    | MUL ID { //here i used MUL because lex returnes MUL when the it captures '*'
+        Gsymbol* temp = find_symbol($2->varname);
+        $2->Gentry = temp;
+
+        $$ = createTree(0, TYPE_INT, "*", PTRNODE, temp,$2, NULL,NULL);
+    }
+    | '&' ID {
+        Gsymbol* temp = find_symbol($2->varname);
+        $2->Gentry = temp;
+        $$ = createTree(0, TYPE_INT, "&", ADDRNODE, NULL,$2, NULL,NULL);
     }
     | STRING {
         $$ = createTree(0, TYPE_STRING, $1, LEAFNODE,NULL, NULL, NULL,NULL);
     }
+    | NUM {
+        $$ = createTree($1->val, TYPE_INT, NULL, LEAFNODE, NULL,NULL, NULL,NULL);
+    }
     ;
+DimAccess   : DimAccess '[' E ']' {
+               $$ = append_dim_with_id(NULL,$3);
+            }
+            | '[' E ']' {
+                $$ = append_dim_with_id(NULL,$2);
+            }
+            ;
 %%
 
 
@@ -229,10 +346,14 @@ void printNode(struct tnode* node) {
         default:
             printf("Unknown Node Type\n");
     }
+
 }
+
+
 
 void yyerror(char* s){
     printf("Error encountered: %s\n", s);
+    exit(1);
 }
 
 void postfixPrint(struct tnode* head){
@@ -255,8 +376,10 @@ int main() {
     print_symbol_table();
     FILE* fptr = fopen("a.xsm", "w");
     make_header(fptr);
+    setup_pointers_codegen(fptr);
     codeGen(head,0,0,fptr);
     exit_footer(fptr);
+    create_label_with_message(fptr,101,"IndexOutOfBounds");
     /* codeIntrepret(head); */
     return 0;
 }

@@ -44,7 +44,6 @@
 "continue" {return CONTINUE;}
 
 [a-zA-Z][a-zA-Z0-9]* {
-    
     yylval.node = createTree(0, TYPE_VAR, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
     return ID;
 }
@@ -61,9 +60,13 @@
 "-" {return MINUS;}
 "/" {return DIV;}
 "*" {return MUL;}
+"%" {return MOD;}
 
+"&" {return '&';}
 "(" {return '(';}
 ")" {return ')';}
+"[" {return '[';}
+"]" {return ']';}
 ";" {return ';';}
 "," {return ',';}
 
