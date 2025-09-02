@@ -16,10 +16,12 @@
 
 "begin" {return begin;}
 "end" {return end;}
+"main" {return MAIN;}
 "decl" {return DECL;}
 "enddecl" {return ENDDECL;}
 "int" {return INT;}
 "str" {return STR;}
+
 
 "read" {
     yylval.node = createTree(0, TYPE_NULL, NULL, READNODE, NULL, NULL, NULL,NULL);
@@ -42,6 +44,7 @@
 "until" {return UNTIL;}
 "break" {return BREAK;}
 "continue" {return CONTINUE;}
+
 
 [a-zA-Z][a-zA-Z0-9]* {
     yylval.node = createTree(0, TYPE_VAR, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);

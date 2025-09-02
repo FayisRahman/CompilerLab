@@ -24,15 +24,16 @@
 }
 %token<node> WRITE READ INT STR ID NUM
 %token<string>  STRING
-%token begin end DECL ENDDECL 
+%token begin end MAIN DECL ENDDECL 
 %token PLUS MINUS DIV MUL 
 %token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK
 %token GT GE LT LE NE EQ 
 
 %type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt
 %type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Type
+%type<node>  GDeclBlock FDefBlock MainBlock
 %type<symbol>  Decl VarList Var
-%type<DimList> DimList DimAccess
+%type<DimList> DimList DimAccess Gid GidList
 %type DeclList Declarations
 
 %left  GT GE LT LE NE EQ
@@ -41,7 +42,10 @@
 
 %%
 
-Program : begin Declarations Slist end ';' {
+Program : GDeclBlock FDefBlock MainBlock {}
+        | GDeclBlock MainBlock {}
+        | MainBlock {}
+        | begin Declarations Slist end ';' {
             $$ = $3;
             head = $3;
         }
@@ -50,6 +54,68 @@ Program : begin Declarations Slist end ';' {
         }
         ;
 
+GDeclBlock  : DECL GDeclList ENDDECL 
+            | DECL ENDDECL
+            ;
+
+GDeclList   : GDeclList GDecl 
+            | GDecl
+            ;
+
+GDecl   : Type GidList ';'
+        ;
+
+GidList : GidList ',' Gid 
+        | Gid 
+        ;
+
+Gid     : ID
+        | ID DimList
+        | ID '(' ParamList ')'
+        ;
+
+// ------------------------------------------------------------------------//
+
+FDefBlock   : FDefBlock Fdef 
+            | Fdef
+            ;
+
+Fdef        : Type ID '(' ParamList ')' '{' LdeclBlock Slist '}'
+            ;
+
+ParamList   : ParamList ',' Param | Param
+            |   /*param can be empty */
+            ;
+
+Param       : Type ID
+            ;
+
+//-------------------------------------------------------------------------//
+
+LdeclBlock  : DECL LDecList ENDDECL 
+            | DECL ENDDECL
+            ;
+
+LDecList    : LDecList LDecl 
+            | LDecl
+            ;
+
+LDecl       : Type IdList ';'
+            ;
+
+IdList      : IdList ',' ID 
+            | ID
+            ;
+
+ArgList     : ArgList ',' E 
+            | E
+            ;
+
+//-------------------------------------------------------------------------//
+
+MainBlock : Type MAIN '(' ')' '{' LdeclBlock Slist '}'
+
+//-------------------------------------------------------------------------//
 
 Slist   : Slist Stmt {
             struct tnode* temp = createTree(0,TYPE_NULL,NULL,CONNECTOR,NULL,$1, NULL, $2);
@@ -267,6 +333,8 @@ E   : E PLUS E {
         check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0,TYPE_BOOL,"==",EXPRESSION,NULL,$1,NULL,$3);
     }
+    | ID '(' ')' {}
+    | ID '(' ArgList ')' {}
     | ID {
         Gsymbol* temp = find_symbol($1->varname);
         if(temp->varType != TYPE_VAR && temp->varType != TYPE_PTR){
