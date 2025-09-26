@@ -80,7 +80,7 @@ DimNode* append_dim_with_id(DimNode* list, tnode* t) {
 }
 
 Gsymbol* create_symbol_id_with_dims(char* name, DimNode* dims) {
-    Gsymbol* g = create_symbol_id(name,get_size(dims));
+    Gsymbol* g = create_gsymbol_id(name,get_size(dims));
     g->dimlist = dims;
     // calculate total size (product of dims) here
     return g;

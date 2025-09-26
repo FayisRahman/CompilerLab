@@ -123,7 +123,7 @@ int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	}else if(!t->left && !t->right){
 		p = getReg();
 		if(t->varname != NULL && t->type != TYPE_STRING){
-			Gsymbol* ptr = find_symbol(t->varname);
+			Gsymbol* ptr = find_gsymbol(t->varname);
 			if(ptr->varType == TYPE_VAR || ptr->varType == TYPE_PTR){
 				int addr = ptr->binding;
 				fprintf(fptr, "MOV R%d, %d\n", p, addr);
@@ -171,7 +171,7 @@ void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 	if(t->left->nodetype == PTRNODE){
 		ptr_node_codegen(fptr,t->left,p,0);
 	}else{
-		Gsymbol* ptr = find_symbol(t->left->varname);
+		Gsymbol* ptr = find_gsymbol(t->left->varname);
 		addr = ptr->binding;
 		if(ptr->varType == TYPE_ARR){
 			int r = array_position_codegen(fptr,t->left->dimlist, ptr->dimlist);
@@ -208,7 +208,7 @@ void read_code_to_addr(FILE* fptr, struct tnode* t){
 		fprintf(fptr, "PUSH R%d\n",reg);
 		freeReg();
 	}else{
-		Gsymbol* ptr = find_symbol(t->varname);
+		Gsymbol* ptr = find_gsymbol(t->varname);
 		int addr = ptr->binding;
 		if(ptr->varType == TYPE_ARR){
 			reg = getReg();
@@ -245,7 +245,7 @@ void write_code_from_addr(FILE* fptr, tnode* t){
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
 	}
-	Gsymbol* ptr = find_symbol(t->varname);
+	Gsymbol* ptr = find_gsymbol(t->varname);
 	int addr = ptr->binding;
 	int p = getReg();
 	fprintf(fptr, "MOV R%d, \"Write\"\n",p);
@@ -365,7 +365,7 @@ void setup_pointers_codegen(FILE* fptr){
 
 int addr_node_codegen(FILE* fptr,tnode* t,int regNo){ //used on RHS of an assignment operator only
 
-	Gsymbol* ptr = find_symbol(t->left->varname);
+	Gsymbol* ptr = find_gsymbol(t->left->varname);
 	if(ptr->varType == TYPE_PTR){
 		printf("Error: Cannot access the address of pointer variable: %s\n",t->left->varname);
 		exit(1);
@@ -381,7 +381,7 @@ int addr_node_codegen(FILE* fptr,tnode* t,int regNo){ //used on RHS of an assign
 
 int ptr_node_codegen(FILE* fptr,tnode* t,int regNo,int side){
 	//side 0 -> LHS and 1->RHS
-	Gsymbol* ptr = find_symbol(t->left->varname);
+	Gsymbol* ptr = find_gsymbol(t->left->varname);
 	if(ptr->varType != TYPE_PTR){
 		printf("Error: variable %s not POINTER type\n",t->left->varname);
 		exit(1);

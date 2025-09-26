@@ -1,6 +1,8 @@
 begin
     decl
-        int n,arr[50][8],i,j,dup;
+        int n,arr[2][3][4][5],i,j,dup;
     enddecl
-    i = arr[i][j];
+    i=0;j=0;
+    arr[i][j][i][j]=5;
+    write(arr[i][j][i][j]);
 end;

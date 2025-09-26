@@ -58,30 +58,31 @@ extern int yydebug;
     STRING = 264,
     begin = 265,
     end = 266,
-    DECL = 267,
-    ENDDECL = 268,
-    PLUS = 269,
-    MINUS = 270,
-    DIV = 271,
-    MUL = 272,
-    IF = 273,
-    THEN = 274,
-    ELSE = 275,
-    ENDIF = 276,
-    WHILE = 277,
-    DO = 278,
-    ENDWHILE = 279,
-    REPEAT = 280,
-    UNTIL = 281,
-    CONTINUE = 282,
-    BREAK = 283,
-    GT = 284,
-    GE = 285,
-    LT = 286,
-    LE = 287,
-    NE = 288,
-    EQ = 289,
-    MOD = 290
+    MAIN = 267,
+    DECL = 268,
+    ENDDECL = 269,
+    PLUS = 270,
+    MINUS = 271,
+    DIV = 272,
+    MUL = 273,
+    IF = 274,
+    THEN = 275,
+    ELSE = 276,
+    ENDIF = 277,
+    WHILE = 278,
+    DO = 279,
+    ENDWHILE = 280,
+    REPEAT = 281,
+    UNTIL = 282,
+    CONTINUE = 283,
+    BREAK = 284,
+    GT = 285,
+    GE = 286,
+    LT = 287,
+    LE = 288,
+    NE = 289,
+    EQ = 290,
+    MOD = 291
   };
 #endif
 /* Tokens.  */
@@ -94,44 +95,47 @@ extern int yydebug;
 #define STRING 264
 #define begin 265
 #define end 266
-#define DECL 267
-#define ENDDECL 268
-#define PLUS 269
-#define MINUS 270
-#define DIV 271
-#define MUL 272
-#define IF 273
-#define THEN 274
-#define ELSE 275
-#define ENDIF 276
-#define WHILE 277
-#define DO 278
-#define ENDWHILE 279
-#define REPEAT 280
-#define UNTIL 281
-#define CONTINUE 282
-#define BREAK 283
-#define GT 284
-#define GE 285
-#define LT 286
-#define LE 287
-#define NE 288
-#define EQ 289
-#define MOD 290
+#define MAIN 267
+#define DECL 268
+#define ENDDECL 269
+#define PLUS 270
+#define MINUS 271
+#define DIV 272
+#define MUL 273
+#define IF 274
+#define THEN 275
+#define ELSE 276
+#define ENDIF 277
+#define WHILE 278
+#define DO 279
+#define ENDWHILE 280
+#define REPEAT 281
+#define UNTIL 282
+#define CONTINUE 283
+#define BREAK 284
+#define GT 285
+#define GE 286
+#define LT 287
+#define LE 288
+#define NE 289
+#define EQ 290
+#define MOD 291
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 18 "exptree.y"
+#line 20 "exptree.y"
 
     struct tnode* node;
     char* string;
     int integer;
-    struct Gsymbol* symbol;
+    struct Gsymbol* gsymbol;
+    struct Lsymbol* lsymbol;
     struct DimNode* DimList;
+    struct ParamList* plist;
 
-#line 135 "y.tab.h"
+#line 139 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

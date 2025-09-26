@@ -1,40 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "symbol_table.h"
+#include "local_symbol_table.h"
 
-int curr_stack_address = 4095;
-struct Gsymbol *top = NULL;
-struct Gsymbol *tail = NULL;
+struct Lsymbol* local_tables[MAX_LOCAL_TABLES];
+int curr_addr_offset = 0;
+int curr_funct = 0;
 
 
-void add_symbol(Gsymbol *id, int type) {
-    if(is_present(id->name)!=NULL){
+Lsymbol* add_lsymbol(Lsymbol *id, int type) {
+    if(is_gpresent(id->name)!=NULL){
         printf("Error: Variable %s already Declared\n", id->name);
-    exit(0);
+        exit(0);
     }
-    id->type = type;
-    id->binding = curr_stack_address + 1;
-    curr_stack_address += id->size;
 
-    if(curr_stack_address > 5119){
+    if(curr_stack_address > 1024){
         printf("Error: Memory Overflow\n");
         exit(0);
     }
 
-    if (!top) {
-        top = id;
-        tail = id;
-        tail->next = NULL;
-    } else {
-        tail->next = id;
-        tail = id;
-        tail->next = NULL;
+    Lsymbol* t = local_tables[curr_funct];
+    if(!t){
+        local_tables[curr_funct] = id;
+    }else{
+        while(t->next){
+            t=t->next;
+        }
+        t->next = id;
     }
 }
 
-struct Gsymbol* is_present(char* name){
-    Gsymbol *tail = top;
+struct Lsymbol* is_lpresent(char* name){
+    Lsymbol *tail = local_tables[curr_funct];
     while(tail){
         if(strcmp(tail->name, name) == 0){
             return tail;
@@ -43,13 +40,23 @@ struct Gsymbol* is_present(char* name){
     }
 }
 
+void check_lpresent(Lsymbol* main,char* name){
+    Lsymbol *tail = main;
+    while(tail){
+        if(strcmp(tail->name, name) == 0){
+            printf("Error: Variable already declared in the scope\n");
+            exit(0);
+        }
+        tail = tail->next;
+    }
+}
 
-struct Gsymbol *find_symbol(char * name){
+struct Lsymbol *find_lsymbol(char * name){
     if (!name) {
-        fprintf(stderr, "find_symbol called with NULL name!\n");
+        fprintf(stderr, "find_lsymbol called with NULL name!\n");
         exit(1);
     }
-    Gsymbol *tail = top;
+    Lsymbol *tail = local_tables[curr_funct];
     while(tail){
         if(strcmp(tail->name, name) == 0){
             return tail;
@@ -60,13 +67,13 @@ struct Gsymbol *find_symbol(char * name){
     exit(0);
 }
 
-struct Gsymbol* create_symbol_id(char *name, int size){
-    printf("create_symbol_id: name=%s size=%d\n", name ? name : "NULL", size);
+struct Lsymbol* create_lsymbol_id(char *name, int size){
+    printf("create_lsymbol_id: name=%s size=%d\n", name ? name : "NULL", size);
     if (!name) {
-        fprintf(stderr, "ERROR: create_symbol_id got NULL name!\n");
+        fprintf(stderr, "ERROR: create_lsymbol_id got NULL name!\n");
         exit(1);
     }
-    Gsymbol *temp = malloc(sizeof(struct Gsymbol));
+    Lsymbol *temp = malloc(sizeof(struct Lsymbol));
     temp->name = strdup(name);
     temp->type = TYPE_NULL;
     temp->size = size;
@@ -75,24 +82,24 @@ struct Gsymbol* create_symbol_id(char *name, int size){
     return temp;
 }
 
-Gsymbol* append_symbol_id_list(Gsymbol *list, Gsymbol *id){
+Lsymbol* append_lsymbol_id_list(Lsymbol *list, Lsymbol *id){
     if (list == NULL) return id;
-    Gsymbol *temp = list;
+    Lsymbol *temp = list;
     while (temp->next) temp = temp->next;
     temp->next = id;
     return list;
 }
 
-int get_type(Gsymbol* entry){
+int get_ltype(Lsymbol* entry){
     if(!entry)return TYPE_NULL;
     return entry->type;
 }
 
-void print_symbol_table() {
-    struct Gsymbol *temp = top;
+void print_lsymbol_table() {
+    struct Lsymbol *temp = local_tables[curr_funct];
 
     if (temp == NULL) {
-        printf("Symbol Table is empty.\n");
+        printf("lSymbol Table is empty.\n");
         return;
     }
 
@@ -100,9 +107,8 @@ void print_symbol_table() {
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d %-10d\n", 
-               temp->name, 
-               temp->varType,
+        printf("%-20s %-10d %-10d %-10d\n", 
+               temp->name,
                temp->type, 
                temp->size, 
                temp->binding);
@@ -111,11 +117,11 @@ void print_symbol_table() {
     printf("-----------------------------------------------------------\n\n");
 }
 
-void print_symbol_list(Gsymbol* t) {
-    struct Gsymbol *temp = t;
+void print_lsymbol_list(Lsymbol* t) {
+    struct Lsymbol *temp = t;
 
     if (temp == NULL) {
-        printf("Symbol Table is empty.\n");
+        printf("lSymbol Table is empty.\n");
         return;
     }
 
@@ -123,9 +129,8 @@ void print_symbol_list(Gsymbol* t) {
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d %-10d\n", 
+        printf("%-20s %-10d %-10d %-10d\n", 
                temp->name, 
-               temp->varType,
                temp->type, 
                temp->size, 
                temp->binding);

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "symbol_table.h"
+#include "global_symbol_table.h"
 #include "AST.h"
 
 extern int stack_address;

@@ -5,8 +5,10 @@
     #include "reghandling.h"
     #include "AST.h"
     #include "evaluator.h"
-    #include "symbol_table.h"
+    #include "global_symbol_table.h"
+    #include "local_symbol_table.h"
     #include "dim_node.h"
+    #include "param_list.h"
 
     extern int yylex();
     extern FILE *yyin;
@@ -19,8 +21,10 @@
     struct tnode* node;
     char* string;
     int integer;
-    struct Gsymbol* symbol;
+    struct Gsymbol* gsymbol;
+    struct Lsymbol* lsymbol;
     struct DimNode* DimList;
+    struct ParamList* plist;
 }
 %token<node> WRITE READ INT STR ID NUM
 %token<string>  STRING
@@ -29,11 +33,14 @@
 %token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK
 %token GT GE LT LE NE EQ 
 
+%type<integer> Type
 %type<node> E Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt
-%type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Type
+%type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt
 %type<node>  GDeclBlock FDefBlock MainBlock
-%type<symbol>  Decl VarList Var
-%type<DimList> DimList DimAccess Gid GidList
+%type<gsymbol>  Decl VarList Var Gid GidList
+%type<DimList> DimList DimAccess 
+%type<plist> Paramlist Param
+%type<lsymbol> IdList LDecList LDecl LdeclBlock
 %type DeclList Declarations
 
 %left  GT GE LT LE NE EQ
@@ -45,33 +52,65 @@
 Program : GDeclBlock FDefBlock MainBlock {}
         | GDeclBlock MainBlock {}
         | MainBlock {}
-        | begin Declarations Slist end ';' {
-            $$ = $3;
-            head = $3;
+        | Declarations Slist ';' {
+            $$ = $2;
+            head = $2;
         }
         | begin end ';' {
             exit(0);
         }
         ;
 
-GDeclBlock  : DECL GDeclList ENDDECL 
-            | DECL ENDDECL
+GDeclBlock  : DECL GDeclList ENDDECL {}
+            | DECL ENDDECL {}
             ;
 
-GDeclList   : GDeclList GDecl 
-            | GDecl
+GDeclList   : GDeclList GDecl {stack_address = curr_stack_address;}
+            | GDecl{stack_address = curr_stack_address;}
             ;
 
-GDecl   : Type GidList ';'
+GDecl   : Type GidList ';' {
+            Gsymbol* temp = $2;
+            Gsymbol* temp1 = $2;
+            while(temp){
+                temp1 = temp->next;
+                temp->next = NULL;
+                add_gsymbol(temp,$1);
+                temp = temp1;
+            }
+        }
         ;
 
-GidList : GidList ',' Gid 
-        | Gid 
+GidList : GidList ',' Gid{
+            $$ = append_gsymbol_id_list($1,$3);    
+        } 
+        | Gid { $$ = $1;}
         ;
 
-Gid     : ID
-        | ID DimList
-        | ID '(' ParamList ')'
+Gid     : ID DimList {
+            Gsymbol* temp = create_symbol_id_with_dims($1->varname, $2);
+            $1->Gentry = temp;
+            $1->type = TYPE_ARR;
+            $1->Gentry->varType = TYPE_ARR;
+            if(!$2){
+                $1->type = TYPE_VAR;
+                $1->Gentry->varType = TYPE_VAR;
+            }
+            $$ = temp;
+        }
+        | MUL ID {
+            Gsymbol* temp = create_gsymbol_id($2->varname, 2);
+            $2->Gentry = temp;
+            $2->type = TYPE_PTR;
+            temp->varType = TYPE_PTR;
+            $$ = temp;
+        } //here i used MUL because lex returnes MUL when the it captures '*' 
+        | ID '(' Paramlist ')' {
+            int size = get_paramlist_length($3);
+            Gsymbol* temp = create_gsymbol_id($1->varname, size);
+            temp->plist = $3;
+            temp->varType = TYPE_FUNCT;
+        }
         ;
 
 // ------------------------------------------------------------------------//
@@ -80,31 +119,74 @@ FDefBlock   : FDefBlock Fdef
             | Fdef
             ;
 
-Fdef        : Type ID '(' ParamList ')' '{' LdeclBlock Slist '}'
+Fdef        : Type ID '(' Paramlist ')' '{' LdeclBlock Slist '}' {
+                Gsymbol* temp = find_gsymbol($2->varname);
+                if($1 != temp->type){
+                    printf("Error: Incorrect return type for the Function %s\n", $2->varname);
+                    exit(0);
+                }
+                is_paramlist_correct(temp->plist,$4);
+                
+            }
             ;
 
-ParamList   : ParamList ',' Param | Param
-            |   /*param can be empty */
+Paramlist   : Paramlist ',' Param {
+                $$ = append_param_to_list($1,$3);
+            }
+            | Param {$$ = $1;}
+            |   /*param can be empty */ {$$ = NULL;}
             ;
 
-Param       : Type ID
+Param       : Type ID {
+                $$ = create_param($2->varname,$1);
+            }
             ;
 
 //-------------------------------------------------------------------------//
 
-LdeclBlock  : DECL LDecList ENDDECL 
-            | DECL ENDDECL
+LdeclBlock  : DECL LDecList ENDDECL {
+                Lsymbol* temp = $2;
+                int addr = 0;
+                while(temp){
+                    temp->binding = addr++;
+                    temp = temp->next;
+                }
+                $$ = $2;
+            }
+            | DECL ENDDECL { $$ = NULL;}
             ;
 
-LDecList    : LDecList LDecl 
-            | LDecl
+LDecList    : LDecList LDecl {
+                Lsymbol* temp = $2;
+                while(temp){
+                    check_lpresent($1,temp->name);
+                    temp = temp->next;
+                }
+                $1->next = $2;
+                $$ = $1;
+            }
+            | LDecl {
+                $$ = $1;
+            }
             ;
 
-LDecl       : Type IdList ';'
+LDecl       : Type IdList ';' {
+                Lsymbol* temp = $2;
+                while(temp){
+                    check_lpresent($2,temp->name);
+                    temp->type = $1;
+                    temp = temp->next;
+                }
+                $$ = $2;
+            }
             ;
 
-IdList      : IdList ',' ID 
-            | ID
+IdList      : IdList ',' ID {
+                $$ = append_lsymbol_id_list($1, create_lsymbol_id($3->varname, 1));
+            }
+            | ID {
+                $$ = create_lsymbol_id($1->varname, 1);
+            }
             ;
 
 ArgList     : ArgList ',' E 
@@ -140,18 +222,18 @@ Decl        : Type VarList ';' {
                 while(temp){
                     temp1 = temp->next;
                     temp->next = NULL;
-                    add_symbol(temp,$1->type);
+                    add_gsymbol(temp,$1);
                     temp = temp1;
                 }
             }
             ;   
 
-Type        : INT {$$ = createVarNode(TYPE_INT,NULL,NULL,NULL); }
-            | STR {$$ = createVarNode(TYPE_STRING,NULL,NULL,NULL); }
+Type        : INT {$$ = TYPE_INT; }
+            | STR {$$ = TYPE_STRING; }
             ;
 
 VarList     : VarList ',' Var {
-                $$ = append_symbol_id_list($1,$3);         
+                $$ = append_gsymbol_id_list($1,$3);         
             }
             | Var {
                 $$ = $1;
@@ -170,7 +252,7 @@ Var     : ID DimList {
             $$ = temp;
         }
         | MUL ID {
-            Gsymbol* temp = create_symbol_id($2->varname, 2);
+            Gsymbol* temp = create_gsymbol_id($2->varname, 2);
             $2->Gentry = temp;
             $2->type = TYPE_PTR;
             temp->varType = TYPE_PTR;
@@ -185,13 +267,13 @@ DimList : DimList '[' NUM ']' {
         ;
 
 InputStmt   : READ '(' ID  ')' ';' {
-                Gsymbol* temp = find_symbol($3->varname);
+                Gsymbol* temp = find_gsymbol($3->varname);
                 $3->Gentry = temp;
                 $1->left = $3;
                 $$ = $1;
             }
             | READ '(' ID DimAccess ')' ';' {
-                Gsymbol* temp = find_symbol($3->varname);
+                Gsymbol* temp = find_gsymbol($3->varname);
                 $3->Gentry = temp;
                 check_not_out_of_bounds($4,$3->Gentry->dimlist);
                 $1->left = $3;
@@ -199,7 +281,7 @@ InputStmt   : READ '(' ID  ')' ';' {
                 $$ = createTree(0,TYPE_NULL, "Read", READNODE,NULL,$3, NULL, NULL);
             }
             | READ '(' MUL ID ')' ';' {
-                Gsymbol* entry = find_symbol($4->varname);
+                Gsymbol* entry = find_gsymbol($4->varname);
                 tnode* temp = createTree(0, TYPE_PTR, "*", PTRNODE, entry,$4, NULL,NULL);
                 $$ = createTree(0, TYPE_NULL, "Read", READNODE,NULL,temp, NULL, NULL);
             }
@@ -212,7 +294,7 @@ OutputStmt  : WRITE '(' E ')' ';' {
             ;
 
 AsgStmt : ID '=' E ';' {
-            Gsymbol* temp = find_symbol($1->varname);
+            Gsymbol* temp = find_gsymbol($1->varname);
             if(temp->varType != TYPE_VAR && temp->varType != TYPE_PTR){
                 printf("Error: %s is not of variable type\n",$1->varname);
                 exit(1);
@@ -221,7 +303,7 @@ AsgStmt : ID '=' E ';' {
             $$ = createTree(0,TYPE_VAR, "=", EQUAL,temp,$1, NULL, $3);
         }
         | ID DimAccess '=' E ';'{
-            Gsymbol* temp = find_symbol($1->varname);
+            Gsymbol* temp = find_gsymbol($1->varname);
             if(temp->varType != TYPE_ARR){
                 printf("Error: %s is not of array type\n",$1->varname);
                 exit(1);
@@ -233,7 +315,7 @@ AsgStmt : ID '=' E ';' {
             $$ = createTree(0,TYPE_ARR, "=", EQUAL,$1->Gentry,$1, NULL, $4);
         }
         | MUL ID '=' E ';' {  //here i used MUL because lex returnes MUL when the it captures '*'
-            Gsymbol* temp = find_symbol($2->varname);
+            Gsymbol* temp = find_gsymbol($2->varname);
             if(temp->varType != TYPE_PTR){
                 printf("Error: %s is not of pointer type\n",$2->varname);
                 exit(1);
@@ -336,7 +418,7 @@ E   : E PLUS E {
     | ID '(' ')' {}
     | ID '(' ArgList ')' {}
     | ID {
-        Gsymbol* temp = find_symbol($1->varname);
+        Gsymbol* temp = find_gsymbol($1->varname);
         if(temp->varType != TYPE_VAR && temp->varType != TYPE_PTR){
             printf("Error: %s is not of variable type\n",$1->varname);
             exit(1);
@@ -344,7 +426,7 @@ E   : E PLUS E {
         $$ = createTree(0, temp->type, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
     }
     | ID DimAccess {
-        Gsymbol* temp = find_symbol($1->varname);
+        Gsymbol* temp = find_gsymbol($1->varname);
         if(!$2){
             if(temp->varType != TYPE_ARR){
                 printf("Error: %s is of array type but using it as variable type here\n",$1->varname);
@@ -358,13 +440,13 @@ E   : E PLUS E {
         $$->dimlist = $2;
     }
     | MUL ID { //here i used MUL because lex returnes MUL when the it captures '*'
-        Gsymbol* temp = find_symbol($2->varname);
+        Gsymbol* temp = find_gsymbol($2->varname);
         $2->Gentry = temp;
 
         $$ = createTree(0, TYPE_INT, "*", PTRNODE, temp,$2, NULL,NULL);
     }
     | '&' ID {
-        Gsymbol* temp = find_symbol($2->varname);
+        Gsymbol* temp = find_gsymbol($2->varname);
         $2->Gentry = temp;
         $$ = createTree(0, TYPE_INT, "&", ADDRNODE, NULL,$2, NULL,NULL);
     }
@@ -376,9 +458,11 @@ E   : E PLUS E {
     }
     ;
 DimAccess   : DimAccess '[' E ']' {
-               $$ = append_dim_with_id(NULL,$3);
+                check_data_types($3->type,TYPE_INT,TYPE_INT);
+                $$ = append_dim_with_id($1,$3);
             }
             | '[' E ']' {
+                check_data_types($2->type,TYPE_INT,TYPE_INT);
                 $$ = append_dim_with_id(NULL,$2);
             }
             ;
@@ -441,7 +525,7 @@ void postfixPrint(struct tnode* head){
 int main() {
     yyin = fopen("a.txt", "r");
     yyparse();
-    print_symbol_table();
+    print_gsymbol_table();
     FILE* fptr = fopen("a.xsm", "w");
     make_header(fptr);
     setup_pointers_codegen(fptr);

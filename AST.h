@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "symbol_table.h"
+#include "global_symbol_table.h"
 
 typedef struct tnode {
     int val;        // value of a number for NUM nodes.
@@ -16,7 +16,7 @@ typedef struct tnode {
     struct DimNode* dimlist;
 } tnode;
 
-enum NodeType {
+typedef enum NodeType {
     READNODE,           // 0
     WRITENODE,          // 1
     CONNECTOR,          // 2
@@ -32,9 +32,9 @@ enum NodeType {
     LEAFNODE,           // 12
     ADDRNODE,           // 13
     PTRNODE,            // 14   
-};
+} NodeType;
 
-enum DataType {
+typedef enum DataType {
     TYPE_NULL,      // 0
     TYPE_INT,       // 1
     TYPE_STRING,    // 2
@@ -43,7 +43,8 @@ enum DataType {
     TYPE_ARR,       // 5
     TYPE_PTR,       // 6
     TYPE_ADDR,      // 7
-};
+    TYPE_FUNCT,     // 8
+} DataType;
 
 
 struct tnode* createTree(int val, int type, char* c, int nodeType, struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r);
@@ -59,5 +60,6 @@ struct tnode* createJumpNode(int nodeType);
 
 struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r);
 
+//to check that during operations and assignments the data types are correct
 void check_data_types(int t,int q,int type);
 #endif

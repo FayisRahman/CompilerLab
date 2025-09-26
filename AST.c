@@ -6,9 +6,9 @@
 
 struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r){
 	if(nodeType == OPERATOR || nodeType == EQUAL){
-        if(get_type(l->Gentry) == TYPE_INT || get_type(l->Gentry) == TYPE_STRING){
-            if(get_type(l->Gentry) != get_type(l->Gentry)){
-                printf("Error: Type Mismatch %s->%d and %s->%d\n",l->varname,get_type(l->Gentry),r->varname,get_type(l->Gentry));
+        if(get_gtype(l->Gentry) == TYPE_INT || get_gtype(l->Gentry) == TYPE_STRING){
+            if(get_gtype(l->Gentry) != get_gtype(l->Gentry)){
+                printf("Error: Type Mismatch %s->%d and %s->%d\n",l->varname,get_gtype(l->Gentry),r->varname,get_gtype(l->Gentry));
                 exit(1);
             }
         }

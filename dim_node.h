@@ -1,7 +1,7 @@
 #ifndef DIM_NODE_H
 #define DIM_NODE_H
 
-#include "symbol_table.h"
+#include "global_symbol_table.h"
 
 #define MAX_DIM_SIZE 100
 
