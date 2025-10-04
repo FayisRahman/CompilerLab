@@ -42,7 +42,7 @@ void codeIntrepret(struct tnode *t){
 
     switch(t->nodetype){
 	
-        case EQUAL:
+        case ASSIGNMENT:
             assignment_expression_eval(t);
             break;
         case READNODE:

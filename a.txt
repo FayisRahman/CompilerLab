@@ -1,8 +1,26 @@
-begin
-    decl
-        int n,arr[2][3][4][5],i,j,dup;
-    enddecl
-    i=0;j=0;
-    arr[i][j][i][j]=5;
-    write(arr[i][j][i][j]);
-end;
+decl
+ int* fun(int* x);
+ int a,*y;
+enddecl
+int* fun(int* x){
+ begin
+    *x = 90;
+  return x;
+ end
+}
+int main(){
+ decl
+  int *b,*c;
+ enddecl
+
+ begin
+  read(*c);
+  write(*c);
+
+ b = fun(c);
+
+  write(*b);
+
+  return 0;
+ end
+}

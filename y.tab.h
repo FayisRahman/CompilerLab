@@ -76,13 +76,17 @@ extern int yydebug;
     UNTIL = 282,
     CONTINUE = 283,
     BREAK = 284,
-    GT = 285,
-    GE = 286,
-    LT = 287,
-    LE = 288,
-    NE = 289,
-    EQ = 290,
-    MOD = 291
+    RETURN = 285,
+    BREAKPOINT = 286,
+    GT = 287,
+    GE = 288,
+    LT = 289,
+    LE = 290,
+    NE = 291,
+    EQ = 292,
+    AND = 293,
+    OR = 294,
+    MOD = 295
   };
 #endif
 /* Tokens.  */
@@ -113,19 +117,23 @@ extern int yydebug;
 #define UNTIL 282
 #define CONTINUE 283
 #define BREAK 284
-#define GT 285
-#define GE 286
-#define LT 287
-#define LE 288
-#define NE 289
-#define EQ 290
-#define MOD 291
+#define RETURN 285
+#define BREAKPOINT 286
+#define GT 287
+#define GE 288
+#define LT 289
+#define LE 290
+#define NE 291
+#define EQ 292
+#define AND 293
+#define OR 294
+#define MOD 295
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 20 "exptree.y"
+#line 23 "exptree.y"
 
     struct tnode* node;
     char* string;
@@ -135,7 +143,7 @@ union YYSTYPE
     struct DimNode* DimList;
     struct ParamList* plist;
 
-#line 139 "y.tab.h"
+#line 147 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

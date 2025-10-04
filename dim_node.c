@@ -110,3 +110,21 @@ void check_not_out_of_bounds(DimNode* t, DimNode* main){
         exit(1);
     }
 }
+
+void dimnode_destroy(DimNode* node) {
+    if(!node){
+        printf("helloooo");    
+    }
+    while (node) {
+        DimNode* next = node->next;
+
+        // free AST node if DimNode owns it
+        if (node->id) {
+            ast_destroy(node->id);  // only if ownership is here!
+        }
+
+        free(node);
+        node = next;
+    }
+}
+

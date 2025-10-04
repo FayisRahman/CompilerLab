@@ -1,6 +1,7 @@
 #ifndef GLOBAL_SYMBOL_TABLE_H
 #define GLOBAL_SYMBOL_TABLE_H
 
+
 #include "AST.h"
 #include "dim_node.h"
 
@@ -13,11 +14,13 @@ typedef struct Gsymbol {
     struct Gsymbol *next;
     struct DimNode* dimlist;
     struct ParamList* plist;
-    int flable;
+    int flabel;
 }Gsymbol;
 
 extern struct Gsymbol *top;
 extern struct Gsymbol *tail;
+extern int flabel_count;
+extern int is_global_vars_declared; // 0 -> N0 1->YES
 
 extern int curr_stack_address;
 

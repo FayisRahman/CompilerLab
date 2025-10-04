@@ -2,6 +2,7 @@
     #include <stdio.h>
     #include "y.tab.h"
     #include "AST.h"
+    int currLine = 0;
 
 %}
 
@@ -21,18 +22,14 @@
 "enddecl" {return ENDDECL;}
 "int" {return INT;}
 "str" {return STR;}
-
-
 "read" {
     yylval.node = createTree(0, TYPE_NULL, NULL, READNODE, NULL, NULL, NULL,NULL);
     return READ;
 }
-
 "write" {
     yylval.node = createTree(0, TYPE_NULL, NULL, WRITENODE, NULL, NULL, NULL,NULL);
     return WRITE;
 }
-
 "if" {return IF;}
 "then" {return THEN;}
 "else" {return ELSE;}
@@ -44,6 +41,10 @@
 "until" {return UNTIL;}
 "break" {return BREAK;}
 "continue" {return CONTINUE;}
+"return" {return RETURN;}
+"AND" {return AND;}
+"OR" {return OR;}
+"breakpoint" {return BREAKPOINT;}
 
 
 [a-zA-Z][a-zA-Z0-9]* {
@@ -70,6 +71,8 @@
 ")" {return ')';}
 "[" {return '[';}
 "]" {return ']';}
+"{" {return '{';}
+"}" {return '}';}
 ";" {return ';';}
 "," {return ',';}
 
@@ -82,7 +85,11 @@
 ">"  { return GT; }
 "<"  { return LT; }
 
-[ \t\n]+   { /* skip whitespace */ }
+[ \t]+   { /* skip whitespace */ }
+
+[\n]+ { /* skip whitespace */ currLine++;
+        printf("%d\n",currLine);
+    }
 
 . { /* ignore unrecognized characters */ }
 

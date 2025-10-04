@@ -6,6 +6,8 @@
 int curr_stack_address = 4095;
 struct Gsymbol *top = NULL;
 struct Gsymbol *tail = NULL;
+int flabel_count = 0;
+int is_global_vars_declared = 0;
 
 
 void add_gsymbol(Gsymbol *id, int type) {
@@ -35,8 +37,11 @@ void add_gsymbol(Gsymbol *id, int type) {
 
 struct Gsymbol* is_gpresent(char* name){
     Gsymbol *tail = top;
+    
     while(tail){
-        if(strcmp(tail->name, name) == 0){
+        if(!name){
+            printf("heyy");
+        }else if(strcmp(tail->name, name) == 0){
             return tail;
         }
         tail = tail->next;
@@ -46,7 +51,7 @@ struct Gsymbol* is_gpresent(char* name){
 
 struct Gsymbol *find_gsymbol(char * name){
     if (!name) {
-        fprintf(stderr, "find_symbol called with NULL name!\n");
+        fprintf(stderr, "find_gsymbol called with NULL name!\n");
         exit(1);
     }
     Gsymbol *tail = top;
@@ -56,14 +61,14 @@ struct Gsymbol *find_gsymbol(char * name){
         }
         tail = tail->next;
     }
-    printf("Error: Variable %s Not Declared\n", name);
-    exit(0);
+    // printf("Error: Variable %s Not Declared\n", name);
+    // exit(0);
 }
 
 struct Gsymbol* create_gsymbol_id(char *name, int size){
-    printf("create_symbol_id: name=%s size=%d\n", name ? name : "NULL", size);
+    printf("create_gsymbol_id: name=%s size=%d\n", name ? name : "NULL", size);
     if (!name) {
-        fprintf(stderr, "ERROR: create_symbol_id got NULL name!\n");
+        fprintf(stderr, "ERROR: create_gsymbol_id got NULL name!\n");
         exit(1);
     }
     Gsymbol *temp = malloc(sizeof(struct Gsymbol));

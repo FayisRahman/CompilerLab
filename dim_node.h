@@ -11,7 +11,6 @@ typedef struct tnode tnode;
 
 typedef struct DimNode {
     int size;
-    char* name;
     struct tnode* id;
     struct DimNode* next;
 } DimNode;
@@ -40,6 +39,10 @@ int get_size(DimNode* list);
 
 //RETURNS THE DIMENSION OF THE LIST (basically length of the given linked list)
 int get_length(DimNode* list);
+
+
+//FREE THE UNWANTED LIST
+void dimnode_destroy(DimNode* list);
 
 
 #endif

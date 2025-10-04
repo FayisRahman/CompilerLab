@@ -52,17 +52,57 @@ void is_paramlist_correct(ParamList* main, ParamList* t){
     ParamList* t2 = t;
     while(t1){
         if(t2){
-            if(strcmp(t1->name,t2->name) != 0 || t1->type != t2->type){
-                printf("Error:Incorrect set of arguments for the function\n");
+            if(t1->type != t2->type){
+                printf("Error:Incorrect set of arguments for the function->%s-%d and %s-%d\n",t1->name,t1->type,t2->name,t2->type);
                 exit(0);
             }
         }else{
             printf("Error:Too few Arguments for the function\n");
             exit(0);
         }
+        t1 = t1->next;
+        t2 = t2->next;
     }
     if(t2){
         printf("Error:Too many Arguments for the function\n");
+        printf("%s\n",t2->name);
+        printf("%d-%d\n", get_paramlist_length(main),get_paramlist_length(t));
         exit(0);
     }
+}
+
+void param_list_is_input_args_correct(ParamList* main, tnode* t){
+    ParamList* t1 = main;
+    tnode* t2 = t;
+    int count = 0;
+    while(t1){
+        if(t2){
+            if(t1->type != t2->type){
+                printf("Error:Incorrect set of arguments for the function->%s-%d and %s-%d\n",t1->name,t1->type,t2->varname,t2->type);
+                exit(0);
+            }
+        }else{
+            printf("Error:Too few Arguments for the function\n");
+            exit(0);
+        }
+        t1 = t1->next;
+        t2 = t2->middle;
+    }
+    if(t2){
+        printf("Error:Too many Arguments for the function\n");
+        printf("%s",t2->varname);
+        printf("%d-%d\n", get_paramlist_length(main),count+1);
+        exit(0);
+    }
+}
+
+void paramlist_destroy(struct ParamList* head) {
+    struct ParamList* curr = head;
+    while (curr != NULL) {
+        ParamList* next = curr->next;
+        free(curr->name);
+        free(curr);
+        curr = next;
+    }
+    head = NULL;
 }

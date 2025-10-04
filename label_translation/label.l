@@ -15,16 +15,15 @@
 
 %%
 
-L[0-9]+: {
-    addLabel(yytext,current_address);
+([LF][0-9]+|MAIN): {
+    addLabel(yytext, current_address);
 }
 
-L[0-9]+ {
-    
+([LF][0-9]+|MAIN) {
     int addr = findLabel(yytext);
-    if(addr != -1){
+    if (addr != -1) {
         fprintf(out, "%d", addr);
-    }else{
+    } else {
         fprintf(out, "%s", yytext);
     }
 }

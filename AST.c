@@ -3,9 +3,10 @@
 #include <string.h>
 
 #include "AST.h"
+#include "param_list.h" 
 
 struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r){
-	if(nodeType == OPERATOR || nodeType == EQUAL){
+	if(nodeType == OPERATOR || nodeType == ASSIGNMENT){
         if(get_gtype(l->Gentry) == TYPE_INT || get_gtype(l->Gentry) == TYPE_STRING){
             if(get_gtype(l->Gentry) != get_gtype(l->Gentry)){
                 printf("Error: Type Mismatch %s->%d and %s->%d\n",l->varname,get_gtype(l->Gentry),r->varname,get_gtype(l->Gentry));
@@ -69,3 +70,68 @@ void check_data_types(int t,int q,int type){
         exit(1);
     }
 }
+
+void ast_destroy(struct tnode* head){
+    if(!head)return;
+    ast_destroy(head->left);
+    head->left = NULL;
+    ast_destroy(head->middle);
+    head->middle = NULL;
+    ast_destroy(head->right);
+    head->right = NULL;
+    // if(head->dimlist){
+    //     dimnode_destroy(head->dimlist);
+    //     head->dimlist = NULL;
+    // }
+    if(head->plist){
+        paramlist_destroy(head->plist);
+        head->plist = NULL;
+    }
+    free(head->varname);
+    head->varname = NULL;
+    free(head);
+    head = NULL;
+
+}
+
+
+const char* nodetype_to_string(int nodetype) {
+    switch (nodetype) {
+        case READNODE: return "READ";
+        case WRITENODE: return "WRITE";
+        case CONNECTOR: return "CONNECTOR";
+        case OPERATOR: return "OPERATOR";
+        case ASSIGNMENT: return "ASSIGNMENT";
+        case IFNODE: return "IF";
+        case EXPRESSION: return "EXPRESSION";
+        case WHILENODE: return "WHILE";
+        case DOWHILENODE: return "DO-WHILE";
+        case BREAKNODE: return "BREAK";
+        case CONTINUENODE: return "CONTINUE";
+        case VARNODE: return "VAR";
+        case LEAFNODE: return "LEAF";
+        case ADDRNODE: return "ADDR";
+        case PTRNODE: return "PTR";
+        case FUNCTIONNODE: return "FUNCTION";
+        case RETURNNODE: return "RETURN";
+        case BREAKPOINTNODE: return "BREAKPOINT";
+        default: return "UNKNOWN_NODE";
+    }
+}
+
+const char* type_to_string(int type) {
+    switch (type) {
+        case TYPE_NULL: return "NULL";
+        case TYPE_INT: return "INT";
+        case TYPE_STRING: return "STRING";
+        case TYPE_BOOL: return "BOOL";
+        case TYPE_VAR: return "VAR";
+        case TYPE_ARR: return "ARRAY";
+        case TYPE_PTR: return "PTR";
+        case TYPE_ADDR: return "ADDR";
+        case TYPE_FUNCT: return "FUNCTION";
+        default: return "UNKNOWN_TYPE";
+    }
+}
+
+

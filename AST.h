@@ -6,6 +6,7 @@
 #include <string.h>
 #include "global_symbol_table.h"
 
+
 typedef struct tnode {
     int val;        // value of a number for NUM nodes.
     int type;       // type of variable
@@ -14,6 +15,7 @@ typedef struct tnode {
     struct Gsymbol *Gentry;    // pointer to GST entry for global variables and functions
     struct tnode *left,*right,*middle;  // left and right branches
     struct DimNode* dimlist;
+    struct ParamList* plist; 
 } tnode;
 
 typedef enum NodeType {
@@ -21,7 +23,7 @@ typedef enum NodeType {
     WRITENODE,          // 1
     CONNECTOR,          // 2
     OPERATOR,           // 3
-    EQUAL,              // 4
+    ASSIGNMENT,         // 4
     IFNODE,             // 5
     EXPRESSION,         // 6
     WHILENODE,          // 7
@@ -31,7 +33,11 @@ typedef enum NodeType {
     VARNODE,            // 11
     LEAFNODE,           // 12
     ADDRNODE,           // 13
-    PTRNODE,            // 14   
+    PTRNODE,            // 14
+    FUNCTIONNODE,       // 15
+    RETURNNODE,         // 16
+    BREAKPOINTNODE,     // 17
+    LOGICALOPERATOR,    // 18
 } NodeType;
 
 typedef enum DataType {
@@ -44,6 +50,7 @@ typedef enum DataType {
     TYPE_PTR,       // 6
     TYPE_ADDR,      // 7
     TYPE_FUNCT,     // 8
+    TYPE_FUNCT_PTR, // 9
 } DataType;
 
 
@@ -60,6 +67,12 @@ struct tnode* createJumpNode(int nodeType);
 
 struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r);
 
+void ast_destroy(struct tnode* head);
 //to check that during operations and assignments the data types are correct
 void check_data_types(int t,int q,int type);
+
+const char* nodetype_to_string(int nodetype);
+const char* type_to_string(int type);
+
+
 #endif

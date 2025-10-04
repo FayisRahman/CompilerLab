@@ -50,7 +50,7 @@ void codeGen(struct tnode *t,int end_label, int cont_label, FILE* fptr){
 
     switch(t->nodetype){
 	
-        case EQUAL:
+        case ASSIGNMENT:
             assignment_expression_codegen(t,fptr);
             break;
         case READNODE:
@@ -74,6 +74,12 @@ void codeGen(struct tnode *t,int end_label, int cont_label, FILE* fptr){
 		case CONTINUENODE:
             fprintf(fptr, "JMP L%d\n", cont_label);
             break;
+		case RETURNNODE:
+			return_node_codegen(fptr,t);
+			break;
+		case BREAKPOINTNODE:
+			fprintf(fptr,"BRKP\n");
+			break;
         case CONNECTOR:
             codeGen(t->left,end_label,cont_label,fptr);
             codeGen(t->right,end_label,cont_label,fptr);
@@ -81,34 +87,52 @@ void codeGen(struct tnode *t,int end_label, int cont_label, FILE* fptr){
     }
 }
 
-int boolean_expression_codegen(struct tnode* t,FILE* fptr){
+void boolean_expression_codegen(tnode* t, FILE* fptr, int trueLabel, int falseLabel) {
+    if (t->nodetype == OPERATOR) {
 
-	int lReg = arithemetic_expression_codegen(t->left,fptr);
-	int rReg = arithemetic_expression_codegen(t->right,fptr);
+        // Short-circuit logical AND
+        if (strcmp(t->varname, "&&") == 0) {
+            int midLabel = createLabel();
+            boolean_expression_codegen(t->left, fptr, midLabel, falseLabel);
+            fprintf(fptr, "L%d:", midLabel); // newline added
+            boolean_expression_codegen(t->right, fptr, trueLabel, falseLabel);
+        }
+        // Short-circuit logical OR
+        else if (strcmp(t->varname, "||") == 0) {
+            int midLabel = createLabel();
+            boolean_expression_codegen(t->left, fptr, trueLabel, midLabel);
+            fprintf(fptr, "L%d:", midLabel); // newline added
+            boolean_expression_codegen(t->right, fptr, trueLabel, falseLabel);
+        }
+        else {
+            printf("Error: %s is not a recognised logical operator\n", t->varname);
+            exit(0);
+        }
+    }
+    else { // Comparison operator
+        int lReg = arithemetic_expression_codegen(t->left, fptr);
+        int rReg = arithemetic_expression_codegen(t->right, fptr);
 
-	if (strcmp(t->varname, "<") == 0) {
-		fprintf(fptr, "LT R%d, R%d\n", lReg, rReg);
-	}
-	else if (strcmp(t->varname, "<=") == 0) {
-		fprintf(fptr, "LE R%d, R%d\n", lReg, rReg);
-	}
-	else if (strcmp(t->varname, ">") == 0) {
-		fprintf(fptr, "GT R%d, R%d\n", lReg, rReg);
-	}
-	else if (strcmp(t->varname, ">=") == 0) {
-		fprintf(fptr, "GE R%d, R%d\n", lReg, rReg);
-	}
-	else if (strcmp(t->varname, "!=") == 0) {
-		fprintf(fptr, "NE R%d, R%d\n", lReg, rReg);
-	}
-	else if (strcmp(t->varname, "==") == 0) {
-		fprintf(fptr, "EQ R%d, R%d\n", lReg, rReg);
-	}
-	freeReg();
+        if (strcmp(t->varname, "<") == 0) fprintf(fptr, "LT R%d, R%d\n", lReg, rReg);
+        else if (strcmp(t->varname, "<=") == 0) fprintf(fptr, "LE R%d, R%d\n", lReg, rReg);
+        else if (strcmp(t->varname, ">") == 0) fprintf(fptr, "GT R%d, R%d\n", lReg, rReg);
+        else if (strcmp(t->varname, ">=") == 0) fprintf(fptr, "GE R%d, R%d\n", lReg, rReg);
+        else if (strcmp(t->varname, "==") == 0) fprintf(fptr, "EQ R%d, R%d\n", lReg, rReg);
+        else if (strcmp(t->varname, "!=") == 0) fprintf(fptr, "NE R%d, R%d\n", lReg, rReg);
+        else {
+            printf("Error: %s is not a recognised comparison operator\n", t->varname);
+            exit(0);
+        }
 
-	//lReg contains the value 0(if wrong) and 1(if correct)
-	return lReg;	
+        freeReg(); // free rReg
+
+        fprintf(fptr, "JZ R%d, L%d\n", lReg, falseLabel);
+        fprintf(fptr, "JMP L%d\n", trueLabel);
+
+        freeReg(); // free lReg
+    }
 }
+
 
 int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	int p,q;
@@ -120,20 +144,25 @@ int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	}else if(t->nodetype == ADDRNODE){
 		p = getReg();
 		return addr_node_codegen(fptr,t,p);
+	}else if(t->nodetype == FUNCTIONNODE){
+		p = getReg();
+		return function_node_codegen(fptr,t,p);
 	}else if(!t->left && !t->right){
 		p = getReg();
 		if(t->varname != NULL && t->type != TYPE_STRING){
-			Gsymbol* ptr = find_gsymbol(t->varname);
-			if(ptr->varType == TYPE_VAR || ptr->varType == TYPE_PTR){
-				int addr = ptr->binding;
-				fprintf(fptr, "MOV R%d, %d\n", p, addr);
-				fprintf(fptr, "MOV R%d, [R%d]\n", p, p);
-			}else if(ptr->varType == TYPE_STRING){
+			Gsymbol* ptr1 = find_gsymbol(t->varname);
+			Lsymbol* ptr2 = find_lsymbol(t->varname);
+			int varType = get_var_type(ptr1,ptr2,t->varname);
+			
+			if(varType == TYPE_VAR || varType == TYPE_PTR){
+				int temp1 = get_binding(ptr1,ptr2,t->varname,fptr,p);
+				fprintf(fptr, "MOV R%d, [R%d]\n", p, p); // here temp1 contains same value as p
+			}else if(varType == TYPE_STRING){
 				fprintf(fptr, "MOV R%d, %s\n", p, t->varname);
-			}else if(ptr->varType == TYPE_ARR){
-				int addr = ptr->binding;
-				fprintf(fptr, "MOV R%d, %d\n", p, addr);
-				q = array_position_codegen(fptr,t->dimlist,ptr->dimlist);
+			}else if(varType == TYPE_ARR){
+				int temp1 = get_binding(ptr1,ptr2,t->varname,fptr,p); // here temp1 contains same value as p
+				DimNode* dimlist = get_dimlist(ptr1,ptr2,t->varname);
+				q = array_position_codegen(fptr,t->dimlist,dimlist);
 				fprintf(fptr, "ADD R%d, R%d\n", p, q);
 				fprintf(fptr, "MOV R%d, [R%d]\n", p, p);
 				freeReg();
@@ -147,16 +176,18 @@ int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	}
 	p = arithemetic_expression_codegen(t->left,fptr);
 	q = arithemetic_expression_codegen(t->right, fptr);
-	if(strcmp(t->varname,"+") == 0){
-		fprintf(fptr, "ADD R%d, R%d\n", p, q);
-	}else if(strcmp(t->varname,"-") == 0){
-		fprintf(fptr, "SUB R%d, R%d\n", p, q);
-	}else if(strcmp(t->varname,"*") == 0){
-		fprintf(fptr, "MUL R%d, R%d\n", p, q);
-	}else if(strcmp(t->varname,"/") == 0){
-		fprintf(fptr, "DIV R%d, R%d\n", p, q);
-	}else if(strcmp(t->varname,"%") == 0){
-		fprintf(fptr, "MOD R%d, R%d\n", p, q);
+	if(t->varname){
+		if(strcmp(t->varname,"+") == 0){
+			fprintf(fptr, "ADD R%d, R%d\n", p, q);
+		}else if(strcmp(t->varname,"-") == 0){
+			fprintf(fptr, "SUB R%d, R%d\n", p, q);
+		}else if(strcmp(t->varname,"*") == 0){
+			fprintf(fptr, "MUL R%d, R%d\n", p, q);
+		}else if(strcmp(t->varname,"/") == 0){
+			fprintf(fptr, "DIV R%d, R%d\n", p, q);
+		}else if(strcmp(t->varname,"%") == 0){
+			fprintf(fptr, "MOD R%d, R%d\n", p, q);
+		}
 	}
 	freeReg();
 	return p;
@@ -171,15 +202,18 @@ void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 	if(t->left->nodetype == PTRNODE){
 		ptr_node_codegen(fptr,t->left,p,0);
 	}else{
-		Gsymbol* ptr = find_gsymbol(t->left->varname);
-		addr = ptr->binding;
-		if(ptr->varType == TYPE_ARR){
-			int r = array_position_codegen(fptr,t->left->dimlist, ptr->dimlist);
-			fprintf(fptr, "MOV R%d, %d\n", p,ptr->binding);
+		Gsymbol* ptr1 = find_gsymbol(t->left->varname);
+		Lsymbol* ptr2 = find_lsymbol(t->left->varname);
+		int varType = get_var_type(ptr1,ptr2,t->left->varname);
+		if(varType == TYPE_ARR){
+			DimNode* dimlist = get_dimlist(ptr1,ptr2,t->left->varname);
+			int r = array_position_codegen(fptr,t->left->dimlist, dimlist);
+			int temp1 = get_binding(ptr1,ptr2,t->left->varname,fptr,p); //here this function will be generatign teh code
 			fprintf(fptr, "ADD R%d, R%d\n", p, r);
 			freeReg();
-		}else if(ptr->varType == TYPE_VAR || ptr->varType == TYPE_PTR){
-			fprintf(fptr, "MOV R%d, %d\n", p, ptr->binding);
+		}else if(varType == TYPE_VAR || varType == TYPE_PTR){
+			int temp1 = get_binding(ptr1,ptr2,t->left->varname,fptr,p);
+			//the above function has already geerated the code
 		}
 	}
 	
@@ -191,7 +225,7 @@ void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 }
 
 void read_code_to_addr(FILE* fptr, struct tnode* t){
-	fprintf(fptr, "MOV SP, %d\n", stack_address);
+
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
 	}
@@ -200,7 +234,7 @@ void read_code_to_addr(FILE* fptr, struct tnode* t){
 	int p = getReg();
 	fprintf(fptr, "MOV R%d, \"Read\"\n",p);
 	fprintf(fptr, "PUSH R%d\n",p);
-	fprintf(fptr, "MOV R%d, -1\n",p);
+	fprintf(fptr, "MOV R%d, -1\n", p);
 	fprintf(fptr, "PUSH R%d\n",p);
 	if(t->nodetype == PTRNODE){
 		reg = getReg(); 
@@ -208,18 +242,20 @@ void read_code_to_addr(FILE* fptr, struct tnode* t){
 		fprintf(fptr, "PUSH R%d\n",reg);
 		freeReg();
 	}else{
-		Gsymbol* ptr = find_gsymbol(t->varname);
-		int addr = ptr->binding;
-		if(ptr->varType == TYPE_ARR){
+		Gsymbol* ptr1 = find_gsymbol(t->varname);
+		Lsymbol* ptr2 = find_lsymbol(t->varname);
+		int varType = get_var_type(ptr1,ptr2,t->varname);
+		if(varType == TYPE_ARR){
 			reg = getReg();
-			fprintf(fptr, "MOV R%d, %d\n", reg, ptr->binding);
-			int q = array_position_codegen(fptr,t->dimlist,ptr->dimlist);
+			get_binding(ptr1,ptr2,t->varname,fptr,reg);
+			DimNode* dimlist = get_dimlist(ptr1,ptr2,t->varname);
+			int q = array_position_codegen(fptr,t->dimlist,dimlist);
 			fprintf(fptr, "ADD R%d,R%d\n", reg, q);
 			fprintf(fptr, "PUSH R%d\n",reg);
 			freeReg();
 			freeReg();
-		}else if(ptr->varType == TYPE_VAR){
-			fprintf(fptr, "MOV R%d, %d\n",p, addr);
+		}else if(varType == TYPE_VAR){
+			get_binding(ptr1,ptr2,t->varname,fptr,p);
 			fprintf(fptr, "PUSH R%d\n",p);
 		}else{
 			printf("Error: %s can access it in this manner\n",t->varname);
@@ -240,37 +276,7 @@ void read_code_to_addr(FILE* fptr, struct tnode* t){
 	}	
 }
 
-void write_code_from_addr(FILE* fptr, tnode* t){
-	fprintf(fptr, "MOV SP, 4122\n");
-	for(int i=0;i<regCount;i++){
-		fprintf(fptr, "PUSH R%d\n",i);
-	}
-	Gsymbol* ptr = find_gsymbol(t->varname);
-	int addr = ptr->binding;
-	int p = getReg();
-	fprintf(fptr, "MOV R%d, \"Write\"\n",p);
-	fprintf(fptr, "PUSH R%d\n", p);
-	fprintf(fptr, "MOV R%d, -2\n", p);
-	fprintf(fptr, "PUSH R%d\n", p);
-	fprintf(fptr, "MOV R%d, %d\n",p, addr);
-	fprintf(fptr, "MOV R%d, [R%d]\n", p , p);
-	fprintf(fptr, "PUSH R%d\n", p);
-	fprintf(fptr, "PUSH R%d\n", p);
-	fprintf(fptr, "PUSH R%d\n", p);
-	fprintf(fptr, "CALL 0\n");
-	fprintf(fptr, "POP R%d\n", p);
-	fprintf(fptr, "POP R%d\n", p);
-	fprintf(fptr, "POP R%d\n", p);
-	fprintf(fptr, "POP R%d\n", p);
-	fprintf(fptr, "POP R%d\n", p);
-	freeReg();
-	for(int i=regCount-1;i>=0;i--){
-		fprintf(fptr, "POP R%d\n",i);
-	}	
-}
-
 void write_code_from_reg(FILE* fptr, int regNo){
-	fprintf(fptr, "MOV SP, %d\n",stack_address);
 	for(int i=0;i<regCount;i++){
 		fprintf(fptr, "PUSH R%d\n",i);
 	}
@@ -307,87 +313,134 @@ void exit_footer(FILE* fptr){
 	freeReg();
 }
 
-void if_node_codegen(FILE* fptr,tnode* t,int end_label,int cont_label){
-	int label_1 = createLabel();
-	int label_2 = createLabel();
-	int reg = boolean_expression_codegen(t->middle,fptr);
-	freeReg();
-	fprintf(fptr, "JZ R%d, L%d\n", reg, label_1);
-	codeGen(t->left,end_label,cont_label,fptr);
-	fprintf(fptr, "JMP L%d\n", label_2);
-	fprintf(fptr, "L%d:", label_1);
-	codeGen(t->right,end_label,cont_label,fptr);
-	fprintf(fptr, "L%d:", label_2);
+void if_node_codegen(FILE* fptr, tnode* t, int end_label, int cont_label) {
+    int label_true = createLabel();
+    int label_false = createLabel();
+	int label_finish = createLabel();
+
+    // Evaluate condition — jump to true/false labels
+    boolean_expression_codegen(t->middle, fptr, label_true, label_false);
+
+    // True branch
+    fprintf(fptr, "L%d:", label_true);
+    codeGen(t->left, end_label, cont_label, fptr);
+    fprintf(fptr, "JMP L%d\n", label_finish);
+
+    // False branch (optional)
+    fprintf(fptr, "L%d:", label_false);
+    if (t->right != NULL) {
+        codeGen(t->right, end_label, cont_label, fptr);
+    }
+
+    // End label
+    fprintf(fptr, "L%d:", label_finish);
 }
 
-void while_node_codegen(FILE* fptr,tnode* t){
-	int start_label = createLabel();
-	int cont_label = start_label;
-	int end_label = createLabel();
-	fprintf(fptr, "L%d:", start_label);
-	int reg = boolean_expression_codegen(t->middle,fptr);
-	fprintf(fptr, "JZ R%d, L%d\n", reg, end_label);
-	freeReg();
-	codeGen(t->left,end_label,cont_label,fptr);
-	fprintf(fptr, "JMP L%d\n", start_label);
-	fprintf(fptr, "L%d:", end_label);
+
+void while_node_codegen(FILE* fptr, tnode* t) {
+    int start_label = createLabel();
+    int end_label = createLabel();
+	int begin_label = createLabel();
+
+    fprintf(fptr, "L%d:", start_label);
+
+    // Evaluate condition — jump to end_label if false
+    boolean_expression_codegen(t->middle, fptr, begin_label, end_label);
+
+	fprintf(fptr, "L%d:", begin_label);
+
+    // Body of while
+    codeGen(t->left, end_label, start_label, fptr);
+
+    // Jump back to start
+    fprintf(fptr, "JMP L%d\n", start_label);
+
+    // End label
+    fprintf(fptr, "L%d:", end_label);
 }
 
-void do_while_node_codegen(FILE* fptr,tnode* t){
-	int start_label = createLabel();
-	int cont_label = createLabel();
-	int end_label = createLabel();
 
-	fprintf(fptr, "L%d:", start_label);
-	codeGen(t->left,end_label,cont_label,fptr);
-	fprintf(fptr, "L%d:", cont_label);
-	int reg = boolean_expression_codegen(t->middle,fptr);
-	freeReg();
-	fprintf(fptr, "JNZ R%d, L%d\n", reg, start_label);
-	fprintf(fptr,"L%d:", end_label);
+void do_while_node_codegen(FILE* fptr, tnode* t) {
+    int start_label = createLabel();
+    int cont_label = createLabel();
+    int end_label = createLabel();
+
+    fprintf(fptr, "L%d:", start_label);
+
+    // Body of the loop
+    codeGen(t->left, end_label, cont_label, fptr);
+
+    // Condition check — jump back to start_label if true
+    boolean_expression_codegen(t->middle, fptr, start_label, end_label);
+
+    // End label
+    fprintf(fptr, "L%d:", end_label);
 }
 
-void setup_pointers_codegen(FILE* fptr){
-	Gsymbol* temp = top;
+void setup_pointers_codegen(FILE* fptr,Gsymbol* gptr, Lsymbol* lptr){
+	
 	int p = getReg();
 	int q = getReg();
-	while(temp){
+
+	if(lptr){
+		Lsymbol* temp = lptr;
+		int r = getReg();
+		while(temp){
+			if(temp->varType == TYPE_PTR){
+				fprintf(fptr, "MOV R%d, BP\n", r);
+				fprintf(fptr, "MOV R%d, %d\n",p, temp->binding);
+				fprintf(fptr, "ADD R%d, R%d\n", p, r);
+				fprintf(fptr, "MOV R%d, %d\n",q, temp->binding+1);
+				fprintf(fptr, "ADD R%d, R%d\n", q, r);
+				fprintf(fptr, "MOV [R%d], R%d\n",p, q);
+			}
+			temp = temp->next;
+		}
+		freeReg();
+	}else if(gptr){
+		Gsymbol* temp = gptr;
+		while(temp){
 		if(temp->varType == TYPE_PTR){
 			fprintf(fptr, "MOV R%d, %d\n",p, temp->binding);
 			fprintf(fptr, "MOV R%d, %d\n",q, temp->binding+1);
 			fprintf(fptr, "MOV [R%d], R%d\n",p, q);
 		}
 		temp = temp->next;
+		}
 	}
+	
 	freeReg();
 	freeReg();
+
 }
 
 int addr_node_codegen(FILE* fptr,tnode* t,int regNo){ //used on RHS of an assignment operator only
 
-	Gsymbol* ptr = find_gsymbol(t->left->varname);
-	if(ptr->varType == TYPE_PTR){
+	Gsymbol* ptr1 = find_gsymbol(t->left->varname);
+	Lsymbol* ptr2 = find_lsymbol(t->left->varname);
+	int varType = get_var_type(ptr1,ptr2,t->left->varname);
+	if(varType == TYPE_PTR){
 		printf("Error: Cannot access the address of pointer variable: %s\n",t->left->varname);
 		exit(1);
-	}else if(ptr->varType == TYPE_ARR){
+	}else if(varType == TYPE_ARR){
 		printf("Error: Cannot access the address of array variable: %s\n",t->left->varname);
 		exit(1);
 	}
-	int addr = ptr->binding;
-	fprintf(fptr, "MOV R%d, %d\n", regNo, addr);
+	get_binding(ptr1,ptr2,t->left->varname,fptr,regNo);
 	return regNo;
 
 }
 
 int ptr_node_codegen(FILE* fptr,tnode* t,int regNo,int side){
 	//side 0 -> LHS and 1->RHS
-	Gsymbol* ptr = find_gsymbol(t->left->varname);
-	if(ptr->varType != TYPE_PTR){
+	Gsymbol* ptr1= find_gsymbol(t->left->varname);
+	Lsymbol* ptr2 = find_lsymbol(t->left->varname);
+	int varType = get_var_type(ptr1,ptr2,t->left->varname);
+	if(varType != TYPE_PTR){
 		printf("Error: variable %s not POINTER type\n",t->left->varname);
 		exit(1);
 	}
-	int addr = ptr->binding;
-	fprintf(fptr, "MOV R%d, %d\n", regNo, addr);
+	get_binding(ptr1,ptr2,t->left->varname,fptr,regNo);
 	fprintf(fptr, "MOV R%d, [R%d]\n", regNo, regNo);
 	if(side == 1)fprintf(fptr, "MOV R%d, [R%d]\n", regNo, regNo);
 	return regNo;
@@ -442,8 +495,69 @@ void create_label_with_message(FILE* fptr,int label_no,char* msg){
 	freeReg();
 }
 
+int function_node_codegen(FILE* fptr,tnode* t,int regNo){
+	Gsymbol* temp = find_gsymbol(t->left->varname);
+	tnode* args = t->right;
+	int currCount = regCount;
+	for(int i=0;i<currCount;i++){
+		fprintf(fptr, "PUSH R%d\n", i);
+		freeReg();
+	}
+	while(args){
+		int q = arithemetic_expression_codegen(args,fptr);
+		fprintf(fptr, "PUSH R%d\n",q);
+		freeReg();
+		args = args->middle;
+	}
+	fprintf(fptr, "MOV R%d, \"RETVAL\"\n", regNo);
+	fprintf(fptr, "PUSH R%d\n", regNo);
+	fprintf(fptr, "CALL F%d\n", temp->flabel);
+	fprintf(fptr, "POP R%d\n", regNo);
+	fprintf(fptr, "MOV R%d, R%d\n", currCount, regNo);
+	int p = getReg();
+	args = t->right;
+	while(args){
+		fprintf(fptr, "POP R%d\n",p);
+		args = args->middle;
+	}
+	freeReg();
+	for(int i=currCount-1;i>=0;i--){
+		fprintf(fptr, "POP R%d\n", i);
+		getReg();
+	}
 
+	fprintf(fptr, "MOV R%d, R%d\n",  regNo, currCount);
 
+	return regNo;
+
+}
+
+void return_node_codegen(FILE* fptr, tnode* t){
+	int p = arithemetic_expression_codegen(t->left,fptr);
+	int q = getReg();
+	fprintf(fptr, "MOV R%d, BP\n", q);
+	fprintf(fptr, "SUB R%d, 2\n", q);
+	fprintf(fptr, "MOV [R%d], R%d\n", q, p);
+	int curr_offset = get_curr_offset(curr_lsymbol_table);
+	fprintf(fptr, "SUB SP, %d\n", curr_offset);
+	fprintf(fptr, "POP BP\n");
+	fprintf(fptr, "RET\n");
+	freeReg();
+	freeReg();
+}
+
+void driver_codegen(FILE* fptr){
+
+	fprintf(fptr, "MOV SP, %d\n",curr_stack_address);
+	fprintf(fptr, "MOV BP, SP\n");
+    fprintf(fptr, "MOV R0, \"RETVAL\"\n");
+	fprintf(fptr, "PUSH R0\n");
+    fprintf(fptr, "CALL MAIN\n");
+    
+    fprintf(fptr, "POP R0\n");
+    fprintf(fptr, "JMP L100\n");
+
+}
 
 
 

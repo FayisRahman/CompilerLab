@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "global_symbol_table.h"
+#include "local_symbol_table.h"
 #include "AST.h"
 
 extern int stack_address;
@@ -27,7 +28,19 @@ int arithemetic_expression_codegen(struct tnode *t, FILE *fptr);
 void assignment_expression_codegen(struct tnode *t, FILE *fptr);
 
 //GENERATE the code for boolean expression when t->nodetype == EXPRESSION
-int boolean_expression_codegen(struct tnode *t, FILE *fptr);
+
+/*
+     _____________________________________
+    | Integer           Means             |
+    |    0       is not a do while loop   |         -|____ is for is_do_while arg
+    |    1       is a do while loop       |         -|   
+    |                                     | 
+    |    0       is AND Operator          |         -|____ is for is_dor arg
+    |    1       is OR opeartor           |         -|
+    |_____________________________________|
+
+*/
+void boolean_expression_codegen(struct tnode *t, FILE *fptr, int trueLabel, int falseLabel); 
 
 //READ FROM STDIN
 void read_code_to_addr(FILE* fptr, struct tnode* t);
@@ -57,7 +70,7 @@ void while_node_codegen(FILE* fptr,tnode* t);
 void do_while_node_codegen(FILE* fptr,tnode* t);
 
 //THIS SETUP THE VALUE IN THE POINTER VARIABLE'S ADDRESS 
-void setup_pointers_codegen(FILE* fptr);
+void setup_pointers_codegen(FILE* fptr,Gsymbol* gptr, Lsymbol* lptr);
 
 //---THE BELOW TWO FUNCTION IS TO HANDLE POINTERS AND ADDRESS AS ADDRESS RETURNS A POINTER TYPE---
 
@@ -91,5 +104,15 @@ int array_position_codegen(FILE* fptr, DimNode* d, DimNode* main);
     
 */
 void create_label_with_message(FILE* fptr,int label_no,char* msg);
+
+
+//TO GENERATE THE CODE FOR A FUNCTION AND SET UP THE ACTIVATION RECORD
+int function_node_codegen(FILE* fptr,tnode* t, int regNo);
+
+//TO GENERATE THE RETURN CODE AND TO REMOVE THE UNNECESSARY STACK CONTENTS AND REMOVE THE ACTIVATION RECORD OF THE FUNCTION
+void return_node_codegen(FILE* fptr, tnode* t);
+
+//THIS IS THE DRIVER CODE THAT CALLS THE MAIN FUNCTION AND STORES THE RETURN VALUE SO THAT IT CAN BE LATER USED FOR FURTHER PROCCESSING IF NESCCESSARY AND ALL WITH THIS WE CAN CONSIDER MAIN AS A FUNCTION ITSELF AND NOT AS A SPECIAL FUCNTION
+void driver_codegen(FILE* fptr);
 
 #endif
