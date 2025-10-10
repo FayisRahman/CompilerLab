@@ -41,10 +41,13 @@
 "until" {return UNTIL;}
 "break" {return BREAK;}
 "continue" {return CONTINUE;}
-"return" {return RETURN;}
-"AND" {return AND;}
-"OR" {return OR;}
-"breakpoint" {return BREAKPOINT;}
+"return" { return RETURN;}
+"AND" { return AND;}
+"OR" { return OR;}
+"breakpoint" { return BREAKPOINT;}
+"tuple" { return TUPLE;}
+"type" { return TYPE; }
+"endtype" { return ENDTYPE;}
 
 
 [a-zA-Z][a-zA-Z0-9]* {
@@ -75,6 +78,8 @@
 "}" {return '}';}
 ";" {return ';';}
 "," {return ',';}
+"." {return '.';}
+"->" {return ARROW;}
 
 "=" {return '=';}
 
@@ -88,7 +93,7 @@
 [ \t]+   { /* skip whitespace */ }
 
 [\n]+ { /* skip whitespace */ currLine++;
-        printf("%d\n",currLine);
+        // printf("%d\n",currLine);
     }
 
 . { /* ignore unrecognized characters */ }

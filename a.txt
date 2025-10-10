@@ -1,25 +1,30 @@
 decl
- int* fun(int* x);
- int a,*y;
+ int fun(int x),a;
 enddecl
-int* fun(int* x){
+
+int fun(int x)
+{
  begin
-    *x = 90;
-  return x;
+  if(x >= 91) then
+   a = 91;
+  else
+   a = fun(fun(x+11));
+  endif;
+
+  return a;
  end
 }
-int main(){
+
+int main()
+{
  decl
-  int *b,*c;
+  int b,c;
  enddecl
 
  begin
-  read(*c);
-  write(*c);
-
- b = fun(c);
-
-  write(*b);
+  read(b);
+  c = fun(b);
+  write(c);
 
   return 0;
  end

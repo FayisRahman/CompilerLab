@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <execinfo.h>
+#include <unistd.h>
 #include "local_symbol_table.h"
 
 struct Lsymbol* curr_lsymbol_table = NULL;
@@ -138,10 +140,10 @@ void print_lsymbol_table() {
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d %-10d\n", 
+        printf("%-20s %-10s %-10s %-10d %-10d\n", 
                temp->name,
-               temp->varType,
-               temp->type, 
+               type_to_string(temp->varType),
+               type_to_string(temp->type), 
                temp->size, 
                temp->binding);
         temp = temp->next;
@@ -162,10 +164,10 @@ void print_lsymbol_list(Lsymbol* t) {
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d %-10d\n", 
+        printf("%-20s %-10s %-10s %-10d %-10d\n", 
                temp->name,
-               temp->varType,
-               temp->type, 
+               type_to_string(temp->varType),
+               type_to_string(temp->type), 
                temp->size, 
                temp->binding);
         temp = temp->next;
@@ -177,6 +179,17 @@ void print_lsymbol_list(Lsymbol* t) {
 
 //--------------------GET SYMBOL TABLE DATAS-----------------------------START-------//
 
+
+void print_call_stack() {
+    void *array[20];
+    size_t size;
+
+    size = backtrace(array, 20);
+    fprintf(stderr, "Call stack (most recent call first):\n");
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+}
+
+
 int get_var_type(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     if(lentry){
         return lentry->varType;
@@ -184,7 +197,8 @@ int get_var_type(Gsymbol* gentry, Lsymbol* lentry,char* varname){
         return gentry->varType;
     }else{
         printf("Error: Variable %s not declared\n",varname);
-        exit(0);
+        // print_call_stack();
+        exit(1);
     }
 }
 
@@ -195,6 +209,7 @@ int get_type(Gsymbol* gentry, Lsymbol* lentry,char* varname){
         return gentry->type;
     }else{
         printf("Error: Variable %s not declared\n",varname);
+        
         exit(0);
     }
 }
@@ -224,6 +239,25 @@ int get_binding(Gsymbol* gentry, Lsymbol* lentry,char* varname,FILE* fptr, int r
     }
 }
 
+TypeTable* get_typetable(Gsymbol* gentry, Lsymbol* lentry,char* varname){
+    if(lentry){
+        return lentry->typeEntry;
+    }else if(gentry){
+        return gentry->typeEntry;
+    }else{
+        printf("Error: Variable %s not declared\n",varname);
+        exit(0);
+    }
+}
 
+int get_funct_arg_varType(Gsymbol* gentry, int offset){
+    ParamList* plist = gentry->plist;
+
+    while(offset--){
+        plist = plist->next;
+    }
+
+    return plist->varType;
+}
 
 //--------------------GET SYMBOL TABLE DATAS-----------------------------END---------//

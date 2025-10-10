@@ -105,10 +105,10 @@ void print_gsymbol_table() {
     printf("-----------------------------------------------------------\n");
 
     while (temp != NULL) {
-        printf("%-20s %-10d %-10d %-10d %-10d\n", 
+        printf("%-20s %-10s %-10s %-10d %-10d\n", 
                temp->name, 
-               temp->varType,
-               temp->type, 
+               type_to_string(temp->varType),
+               type_to_string(temp->type), 
                temp->size, 
                temp->binding);
         temp = temp->next;
@@ -138,3 +138,4 @@ void print_gsymbol_list(Gsymbol* t) {
     }
     printf("-----------------------------------------------------------\n\n");
 }
+

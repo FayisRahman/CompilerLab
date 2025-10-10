@@ -10,6 +10,8 @@ int labelCount = -1;
 int stackTop = -1;
 int stack[MAX_LABEL]={0};
 int stack_address = 0;
+int funct_assign_reg = -1;
+
 
 
 void make_header(FILE *fptr) {
@@ -139,21 +141,21 @@ int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 	if(!t)return -1;
 	
 	if(t->nodetype == PTRNODE){
-		p = getReg();
-		return ptr_node_codegen(fptr,t,p,1);
+		return ptr_node_codegen(fptr,t->left,1);
 	}else if(t->nodetype == ADDRNODE){
-		p = getReg();
-		return addr_node_codegen(fptr,t,p);
+		return addr_node_codegen(fptr,t);
 	}else if(t->nodetype == FUNCTIONNODE){
-		p = getReg();
-		return function_node_codegen(fptr,t,p);
+		return function_node_codegen(fptr,t);
+	}else if(t->nodetype == DOTNODE){
+		return dot_node_codegen(fptr,t);
+	}else if(t->nodetype == ARROWNODE){
+		return arrow_node_codegen(fptr,t);
 	}else if(!t->left && !t->right){
 		p = getReg();
-		if(t->varname != NULL && t->type != TYPE_STRING){
+		if(t->varname != NULL && t->varname[0] != '"'){
 			Gsymbol* ptr1 = find_gsymbol(t->varname);
 			Lsymbol* ptr2 = find_lsymbol(t->varname);
 			int varType = get_var_type(ptr1,ptr2,t->varname);
-			
 			if(varType == TYPE_VAR || varType == TYPE_PTR){
 				int temp1 = get_binding(ptr1,ptr2,t->varname,fptr,p);
 				fprintf(fptr, "MOV R%d, [R%d]\n", p, p); // here temp1 contains same value as p
@@ -196,19 +198,39 @@ int arithemetic_expression_codegen(struct tnode* t,FILE* fptr){
 void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 
 	int p,q,addr;
-	p = getReg();
-	 //this is for arrays and if its simply a variable then the value will be zero. here the value will be the offset
 	
+	//this is for arrays and if its simply a variable then the value will be zero. here the value will be the offset
+
+	q = arithemetic_expression_codegen(t->right, fptr);
+
 	if(t->left->nodetype == PTRNODE){
-		ptr_node_codegen(fptr,t->left,p,0);
+		p = ptr_node_codegen(fptr,t->left->left,0);
+	}else if(t->left->nodetype == DOTNODE){
+		p = getReg();
+		tnode* tup = t->left->left;
+		Gsymbol* ptr1 = find_gsymbol(tup->varname);
+		Lsymbol* ptr2 = find_lsymbol(tup->varname);
+		TypeTable* type = t->typeEntry;
+		int offset = typetable_lookup_id_offset(type,(char*)t->left->right->varname);
+		int r = get_binding(ptr1,ptr2,tup->varname,fptr,p);
+		fprintf(fptr, "ADD R%d, %d\n", p, offset);
+	}else if(t->left->nodetype == ARROWNODE){
+		tnode* tup = t->left->left;
+		Gsymbol* ptr1 = find_gsymbol(tup->varname);
+		Lsymbol* ptr2 = find_lsymbol(tup->varname);
+		TypeTable* type = t->typeEntry;
+		int offset = typetable_lookup_id_offset(type,(char*)t->left->right->varname);
+		p = ptr_node_codegen(fptr,t->left->left,0);
+		fprintf(fptr, "ADD R%d, %d\n", p, offset);
 	}else{
+		p = getReg();
 		Gsymbol* ptr1 = find_gsymbol(t->left->varname);
 		Lsymbol* ptr2 = find_lsymbol(t->left->varname);
 		int varType = get_var_type(ptr1,ptr2,t->left->varname);
 		if(varType == TYPE_ARR){
 			DimNode* dimlist = get_dimlist(ptr1,ptr2,t->left->varname);
 			int r = array_position_codegen(fptr,t->left->dimlist, dimlist);
-			int temp1 = get_binding(ptr1,ptr2,t->left->varname,fptr,p); //here this function will be generatign teh code
+			int temp1 = get_binding(ptr1,ptr2,t->left->varname,fptr,p); //here this function will be generating the code
 			fprintf(fptr, "ADD R%d, R%d\n", p, r);
 			freeReg();
 		}else if(varType == TYPE_VAR || varType == TYPE_PTR){
@@ -216,10 +238,44 @@ void assignment_expression_codegen(struct tnode* t, FILE* fptr){
 			//the above function has already geerated the code
 		}
 	}
+
+	TypeTable* type = t->right->typeEntry;
 	
-	q = arithemetic_expression_codegen(t->right, fptr);
-	
-	fprintf(fptr, "MOV [R%d], R%d\n", p, q);
+	if(t->right->nodetype == FUNCTIONNODE){
+		Gsymbol* ptr1 = find_gsymbol(t->right->left->varname);
+		Lsymbol* ptr2 = find_lsymbol(t->right->left->varname);
+		TypeTable* type = get_typetable(ptr1,ptr2,t->right->left->varname);
+		if(type->type == TYPE_INT || type->type == TYPE_STRING){
+			fprintf(fptr, "MOV [R%d], R%d\n", p, q);
+		}else if(get_var_type(ptr1,ptr2,t->right->left->varname) == TYPE_FUNCT_PTR){
+			fprintf(fptr, "MOV R%d, [R%d]\n", q, q);
+			fprintf(fptr, "MOV [R%d], R%d\n", p, q);
+			Gsymbol* ptr3 = find_gsymbol(t->left->varname);
+			Lsymbol* ptr4 = find_lsymbol(t->left->varname);
+			if(get_var_type(ptr3,ptr4,t->left->varname) != TYPE_PTR){
+				printf("Error: Assignment with different variable type. LHS is not of pointer type\n");
+				exit(0);
+			}
+		}else{
+			int size = type->size;
+			if(size > 1){
+				fprintf(fptr, "SUB R%d, %d\n", q, size-1);
+			}
+			int reg = getReg();
+			while(size--){
+				fprintf(fptr, "MOV R%d, [R%d]\n", reg, q);
+				fprintf(fptr, "MOV [R%d], R%d\n", p, reg);
+				if(size > 0){
+					fprintf(fptr, "ADD R%d, 1\n", q);
+					fprintf(fptr, "ADD R%d, 1\n", p);
+				}
+			}
+			freeReg();
+		}
+	}else{
+		fprintf(fptr, "MOV [R%d], R%d\n", p, q);
+	}
+
 	freeReg();
 	freeReg();
 }
@@ -237,8 +293,7 @@ void read_code_to_addr(FILE* fptr, struct tnode* t){
 	fprintf(fptr, "MOV R%d, -1\n", p);
 	fprintf(fptr, "PUSH R%d\n",p);
 	if(t->nodetype == PTRNODE){
-		reg = getReg(); 
-		reg = ptr_node_codegen(fptr,t,reg,0);
+		reg = ptr_node_codegen(fptr,t,0);
 		fprintf(fptr, "PUSH R%d\n",reg);
 		freeReg();
 	}else{
@@ -400,11 +455,11 @@ void setup_pointers_codegen(FILE* fptr,Gsymbol* gptr, Lsymbol* lptr){
 	}else if(gptr){
 		Gsymbol* temp = gptr;
 		while(temp){
-		if(temp->varType == TYPE_PTR){
-			fprintf(fptr, "MOV R%d, %d\n",p, temp->binding);
-			fprintf(fptr, "MOV R%d, %d\n",q, temp->binding+1);
-			fprintf(fptr, "MOV [R%d], R%d\n",p, q);
-		}
+			if(temp->varType == TYPE_PTR){
+				fprintf(fptr, "MOV R%d, %d\n",p, temp->binding);
+				fprintf(fptr, "MOV R%d, %d\n",q, temp->binding+1);
+				fprintf(fptr, "MOV [R%d], R%d\n",p, q);
+			}
 		temp = temp->next;
 		}
 	}
@@ -414,7 +469,9 @@ void setup_pointers_codegen(FILE* fptr,Gsymbol* gptr, Lsymbol* lptr){
 
 }
 
-int addr_node_codegen(FILE* fptr,tnode* t,int regNo){ //used on RHS of an assignment operator only
+int addr_node_codegen(FILE* fptr,tnode* t){ //used on RHS of an assignment operator only
+
+	int regNo = getReg();
 
 	Gsymbol* ptr1 = find_gsymbol(t->left->varname);
 	Lsymbol* ptr2 = find_lsymbol(t->left->varname);
@@ -431,16 +488,17 @@ int addr_node_codegen(FILE* fptr,tnode* t,int regNo){ //used on RHS of an assign
 
 }
 
-int ptr_node_codegen(FILE* fptr,tnode* t,int regNo,int side){
+int ptr_node_codegen(FILE* fptr,tnode* t,int side){
 	//side 0 -> LHS and 1->RHS
-	Gsymbol* ptr1= find_gsymbol(t->left->varname);
-	Lsymbol* ptr2 = find_lsymbol(t->left->varname);
-	int varType = get_var_type(ptr1,ptr2,t->left->varname);
+	int regNo = getReg();
+	Gsymbol* ptr1= find_gsymbol(t->varname);
+	Lsymbol* ptr2 = find_lsymbol(t->varname);
+	int varType = get_var_type(ptr1,ptr2,t->varname);
 	if(varType != TYPE_PTR){
-		printf("Error: variable %s not POINTER type\n",t->left->varname);
+		printf("Error: variable %s not POINTER type\n",t->varname);
 		exit(1);
 	}
-	get_binding(ptr1,ptr2,t->left->varname,fptr,regNo);
+	get_binding(ptr1,ptr2,t->varname,fptr,regNo);
 	fprintf(fptr, "MOV R%d, [R%d]\n", regNo, regNo);
 	if(side == 1)fprintf(fptr, "MOV R%d, [R%d]\n", regNo, regNo);
 	return regNo;
@@ -495,7 +553,8 @@ void create_label_with_message(FILE* fptr,int label_no,char* msg){
 	freeReg();
 }
 
-int function_node_codegen(FILE* fptr,tnode* t,int regNo){
+int function_node_codegen(FILE* fptr,tnode* t){
+	
 	Gsymbol* temp = find_gsymbol(t->left->varname);
 	tnode* args = t->right;
 	int currCount = regCount;
@@ -503,41 +562,122 @@ int function_node_codegen(FILE* fptr,tnode* t,int regNo){
 		fprintf(fptr, "PUSH R%d\n", i);
 		freeReg();
 	}
+	int regNo = getReg();
+	int offset = -1;
 	while(args){
-		int q = arithemetic_expression_codegen(args,fptr);
-		fprintf(fptr, "PUSH R%d\n",q);
-		freeReg();
+		offset++;
+		if(args->typeEntry->type == TYPE_TUPLE && args->nodetype != DOTNODE && args->nodetype != ARROWNODE && get_funct_arg_varType(temp,offset) != TYPE_PTR){
+			int size = args->typeEntry->size;
+			int q = getReg();
+			Gsymbol* ptr1 = find_gsymbol(args->varname);
+			Lsymbol* ptr2 = find_lsymbol(args->varname);
+			get_binding(ptr1,ptr2,args->varname,fptr,q);
+			while(size--){
+				fprintf(fptr, "MOV R%d, [R%d]\n", regNo, q);
+				fprintf(fptr, "PUSH R%d\n", regNo);
+				if(size!=0)fprintf(fptr, "ADD R%d, 1\n", q);
+			}
+			freeReg();
+		}else{
+			int q = arithemetic_expression_codegen(args,fptr);
+			fprintf(fptr, "PUSH R%d\n",q);
+			freeReg();
+		}
+		
 		args = args->middle;
 	}
-	fprintf(fptr, "MOV R%d, \"RETVAL\"\n", regNo);
-	fprintf(fptr, "PUSH R%d\n", regNo);
-	fprintf(fptr, "CALL F%d\n", temp->flabel);
-	fprintf(fptr, "POP R%d\n", regNo);
-	fprintf(fptr, "MOV R%d, R%d\n", currCount, regNo);
+
+	if(temp->varType == TYPE_FUNCT_PTR){
+		fprintf(fptr, "MOV R%d, \"RETVAL\"\n",regNo);
+		fprintf(fptr, "PUSH R%d\n",regNo);
+	}else{
+		fprintf(fptr, "MOV R%d, \"RETVAL\"\n",regNo);
+		for(int i=0;i<temp->typeEntry->size;i++){
+			fprintf(fptr,"PUSH R%d\n",regNo);
+		}
+	}
 	int p = getReg();
+	fprintf(fptr, "CALL F%d\n", temp->flabel);
+	
+	
+	int size = 0;
 	args = t->right;
+	offset = -1;
 	while(args){
-		fprintf(fptr, "POP R%d\n",p);
+		offset++;
+		// printf("%s is of %s type\n", args->varname, type_to_string(get_funct_arg_varType(temp,offset)));
+		if(get_funct_arg_varType(temp,offset) == TYPE_PTR){
+			size += 1;
+		}else{
+			size += args->typeEntry->size;
+		}
 		args = args->middle;
+		// printf("size = %d\n",size);
 	}
+	// printf("typeSize = %d\n",temp->typeEntry->size);
+	fprintf(fptr, "MOV R%d, SP\n", currCount);
+	fprintf(fptr, "SUB SP, %d\n", size + temp->size);
+	freeReg();
 	freeReg();
 	for(int i=currCount-1;i>=0;i--){
 		fprintf(fptr, "POP R%d\n", i);
 		getReg();
 	}
-
-	fprintf(fptr, "MOV R%d, R%d\n",  regNo, currCount);
+	regNo = getReg();
+	if(regNo != currCount)fprintf(fptr, "MOV R%d, R%d\n",  regNo, currCount);
+	if(temp->type == TYPE_INT || temp->type == TYPE_STRING){
+		fprintf(fptr, "MOV R%d, [R%d]\n",  regNo, regNo);
+	}
 
 	return regNo;
 
 }
 
 void return_node_codegen(FILE* fptr, tnode* t){
-	int p = arithemetic_expression_codegen(t->left,fptr);
+	char* returningType = t->typeEntry->name;
+	char* returnType = curr_function_type->name;
+	if(strcmp(returningType,returnType) != 0){
+		if(t->nodetype == DOTNODE || t->right->nodetype != ARROWNODE){
+			int type = t->type;
+			if(type == TYPE_INT){
+				returningType = "int";
+			}else if(type == TYPE_STRING){
+				returningType ="str";
+			}else{
+				printf("Error: invalid return type : %d-%s\n",t->type, type_to_string(t->type));
+				exit(1);
+			}
+		}
+		printf("Error: Incorrect function return type, return type is %s and returning type is %s\n", returnType, returningType);
+		exit(1);
+	}
 	int q = getReg();
 	fprintf(fptr, "MOV R%d, BP\n", q);
-	fprintf(fptr, "SUB R%d, 2\n", q);
-	fprintf(fptr, "MOV [R%d], R%d\n", q, p);
+	
+	if(t->left->type == TYPE_TUPLE && t->left->nodetype != DOTNODE && t->left->nodetype != ARROWNODE && curr_funct_return_type != TYPE_FUNCT_PTR){
+		Gsymbol* ptr1 = find_gsymbol(t->left->varname);
+		Lsymbol* ptr2 = find_lsymbol(t->left->varname);
+		TypeTable* type = get_typetable(ptr1,ptr2,t->left->varname);
+		int size = type->size;
+		int reg = getReg();
+		get_binding(ptr1,ptr2,t->left->varname, fptr,reg);
+		fprintf(fptr, "SUB R%d, %d\n", q, 1 + size);
+		int r = getReg();
+		while(size--){
+			fprintf(fptr, "MOV R%d, [R%d]\n", r, reg);
+			fprintf(fptr, "MOV [R%d], R%d\n", q,r);
+			if(size !=0){
+				fprintf(fptr, "ADD R%d, 1\n", q);
+				fprintf(fptr, "ADD R%d, 1\n", reg);
+			}
+		}
+		freeReg();
+		freeReg();
+	}else{
+		int p = arithemetic_expression_codegen(t->left,fptr);
+		fprintf(fptr, "SUB R%d, 2\n", q);
+		fprintf(fptr, "MOV [R%d], R%d\n", q, p);
+	}
 	int curr_offset = get_curr_offset(curr_lsymbol_table);
 	fprintf(fptr, "SUB SP, %d\n", curr_offset);
 	fprintf(fptr, "POP BP\n");
@@ -559,6 +699,41 @@ void driver_codegen(FILE* fptr){
 
 }
 
+int dot_node_codegen(FILE* fptr, tnode* t){
 
+	int regNo = getReg();
+	tnode* tup = t->left;
+	Gsymbol* ptr1 = find_gsymbol(tup->varname);
+	Lsymbol* ptr2 = find_lsymbol(tup->varname);
+
+	TypeTable* type = t->typeEntry;
+	int offset = typetable_lookup_id_offset(type,(char*)t->right->varname);
+
+	get_binding(ptr1,ptr2,t->right->varname,fptr,regNo);
+
+	fprintf(fptr, "ADD R%d, %d\n", regNo, offset);
+
+	fprintf(fptr, "MOV R%d, [R%d]\n", regNo, regNo);
+
+	return regNo;
+}
+
+int arrow_node_codegen(FILE* fptr,tnode* t){
+
+	tnode* tup = t->left;
+	Gsymbol* ptr1 = find_gsymbol(tup->varname);
+	Lsymbol* ptr2 = find_lsymbol(tup->varname);
+
+	TypeTable* type = t->typeEntry;
+	int offset = typetable_lookup_id_offset(type,(char*)t->right->varname);
+
+	int regNo = ptr_node_codegen(fptr,t->left,0);
+
+	fprintf(fptr, "ADD R%d, %d\n", regNo, offset);
+
+	fprintf(fptr, "MOV R%d, [R%d]\n", regNo, regNo);
+
+	return regNo;
+}
 
 

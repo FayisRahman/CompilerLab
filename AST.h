@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "global_symbol_table.h"
+#include "param_list.h"
+#include "type_table.h"
+#include "exptree.h"
 
 
 typedef struct tnode {
@@ -16,42 +19,10 @@ typedef struct tnode {
     struct tnode *left,*right,*middle;  // left and right branches
     struct DimNode* dimlist;
     struct ParamList* plist; 
+    struct TypeTable* typeEntry;
 } tnode;
 
-typedef enum NodeType {
-    READNODE,           // 0
-    WRITENODE,          // 1
-    CONNECTOR,          // 2
-    OPERATOR,           // 3
-    ASSIGNMENT,         // 4
-    IFNODE,             // 5
-    EXPRESSION,         // 6
-    WHILENODE,          // 7
-    DOWHILENODE,        // 8
-    BREAKNODE,          // 9
-    CONTINUENODE,       // 10
-    VARNODE,            // 11
-    LEAFNODE,           // 12
-    ADDRNODE,           // 13
-    PTRNODE,            // 14
-    FUNCTIONNODE,       // 15
-    RETURNNODE,         // 16
-    BREAKPOINTNODE,     // 17
-    LOGICALOPERATOR,    // 18
-} NodeType;
 
-typedef enum DataType {
-    TYPE_NULL,      // 0
-    TYPE_INT,       // 1
-    TYPE_STRING,    // 2
-    TYPE_BOOL,      // 3
-    TYPE_VAR,       // 4 
-    TYPE_ARR,       // 5
-    TYPE_PTR,       // 6
-    TYPE_ADDR,      // 7
-    TYPE_FUNCT,     // 8
-    TYPE_FUNCT_PTR, // 9
-} DataType;
 
 
 struct tnode* createTree(int val, int type, char* c, int nodeType, struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r);
@@ -73,6 +44,7 @@ void check_data_types(int t,int q,int type);
 
 const char* nodetype_to_string(int nodetype);
 const char* type_to_string(int type);
+
 
 
 #endif

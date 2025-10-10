@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "AST.h"
-#include "param_list.h" 
+
 
 struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol* Gentry, struct tnode *l, struct tnode *m,struct tnode *r){
 	if(nodeType == OPERATOR || nodeType == ASSIGNMENT){
@@ -66,7 +66,7 @@ struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r){
 
 void check_data_types(int t,int q,int type){
     if(t!=q || t != type){
-        printf("Error: assignment with different data types\n");
+        printf("Error: Incorrect data type %s but requires %s\n",type_to_string(t), type_to_string(q));
         exit(1);
     }
 }
@@ -115,6 +115,8 @@ const char* nodetype_to_string(int nodetype) {
         case FUNCTIONNODE: return "FUNCTION";
         case RETURNNODE: return "RETURN";
         case BREAKPOINTNODE: return "BREAKPOINT";
+        case DOTNODE: return "DOT";
+        case ARROWNODE: return "ARROW";
         default: return "UNKNOWN_NODE";
     }
 }
@@ -130,6 +132,8 @@ const char* type_to_string(int type) {
         case TYPE_PTR: return "PTR";
         case TYPE_ADDR: return "ADDR";
         case TYPE_FUNCT: return "FUNCTION";
+        case TYPE_FUNCT_PTR: return "PTRFUNCT";
+        case TYPE_TUPLE: return "TUPLE";
         default: return "UNKNOWN_TYPE";
     }
 }

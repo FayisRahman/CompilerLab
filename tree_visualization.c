@@ -1,6 +1,10 @@
 #include "tree_visualization.h"
+#include <stdio.h>
+#include <string.h>
 
-
+/*---------------------------------------------------------
+ * Helpers to print DimList, ParamList, and Gsymbol details
+ *--------------------------------------------------------*/
 void print_dimlist(DimNode* dimlist) {
     printf("Dims:[");
     while (dimlist) {
@@ -30,23 +34,21 @@ void print_gsymbol(Gsymbol* g) {
            g->flabel);
 }
 
-
-void tree_visual_print_tree_structure(tnode *root, char *prefix, int is_last, int is_root,int skip_middle){
-    if (!root)
-        return;
-
-    // Print current node with branch lines
-    if (!is_root) {
-        printf("%s", prefix);
-        printf("%s", is_last ? "└── " : "├── ");
-    }
-
-    // Print node info
+/*---------------------------------------------------------
+ * Prints a single node's core info
+ *--------------------------------------------------------*/
+void print_node_info(tnode* root) {
     printf("[%s] ", nodetype_to_string(root->nodetype));
-    if (root->varname)
+
+    if (root->nodetype == DOTNODE)
+        printf("operator:'.' ");
+    else if (root->nodetype == ARROWNODE)
+        printf("operator:'->' ");
+    else if (root->varname)
         printf("var:%s ", root->varname);
 
     printf("type:%s ", type_to_string(root->type));
+
     if (root->type == TYPE_INT)
         printf("val:%d ", root->val);
 
@@ -58,8 +60,54 @@ void tree_visual_print_tree_structure(tnode *root, char *prefix, int is_last, in
         print_gsymbol(root->Gentry);
 
     printf("\n");
+}
 
-    // Prepare new prefix for children
+/*---------------------------------------------------------
+ * Prints DOTNODE or ARROWNODE neatly
+ *--------------------------------------------------------*/
+void print_field_access_node(tnode* root, char* new_prefix, const char* left_label, const char* right_label) {
+    int child_count = 0;
+    if (root->left) child_count++;
+    if (root->right) child_count++;
+
+    int printed_children = 0;
+
+    if (root->left) {
+        printed_children++;
+        printf("%s%s", new_prefix, (printed_children == child_count) ? "└── " : "├── ");
+        printf("[%s] var:%s type:%s\n",
+               left_label,
+               root->left->varname ? root->left->varname : "(unnamed)",
+               root->left->typeEntry ? root->left->typeEntry->name : type_to_string(root->left->type));
+    }
+
+    if (root->right) {
+        printed_children++;
+        printf("%s%s", new_prefix, (printed_children == child_count) ? "└── " : "├── ");
+        printf("[%s] var:%s type:%s\n",
+               right_label,
+               root->right->varname ? root->right->varname : "(unnamed)",
+               root->right->typeEntry ? root->right->typeEntry->name : type_to_string(root->right->type));
+    }
+}
+
+/*---------------------------------------------------------
+ * Main recursive tree printer
+ *--------------------------------------------------------*/
+void tree_visual_print_tree_structure(tnode *root, char *prefix, int is_last, int is_root, int skip_middle) {
+    if (!root)
+        return;
+
+    // Print prefix and branch
+    if (!is_root) {
+        printf("%s", prefix);
+        printf("%s", is_last ? "└── " : "├── ");
+    }
+
+    // Print node info
+    print_node_info(root);
+
+    // Build prefix for child nodes
     char new_prefix[256];
     if (is_root)
         strcpy(new_prefix, "");
@@ -68,60 +116,85 @@ void tree_visual_print_tree_structure(tnode *root, char *prefix, int is_last, in
         strcat(new_prefix, is_last ? "    " : "│   ");
     }
 
-    int child_count = 0;
-    int printed_children = 0;
-
-    // FUNCTIONNODE special handling
+    /*---------------------------------------------
+     * Special handling: FUNCTIONNODE (with args via middle)
+     *--------------------------------------------*/
     if (root->nodetype == FUNCTIONNODE) {
-        // Count children: left (function name) + number of args in right->middle chain
         int child_count = 0;
         if (root->left) child_count++; // function name
-    
+
+        // Count args linked via right->middle
         tnode *arg = root->right;
-        while (arg) { child_count++; arg = arg->middle; }
-    
+        while (arg) {
+            child_count++;
+            arg = arg->middle;
+        }
+
         int printed_children = 0;
-    
-        // Print function name
+
+        // Function name first
         if (root->left) {
             printed_children++;
             tree_visual_print_tree_structure(root->left, new_prefix,
-                                     printed_children == child_count, 0,0);
+                                             printed_children == child_count, 0, 0);
         }
-    
-        // Print all arguments (start from right, follow middle)
+
+        // Then all arguments
         arg = root->right;
         while (arg) {
             printed_children++;
             tree_visual_print_tree_structure(arg, new_prefix,
-                                     printed_children == child_count, 0,1);
+                                             printed_children == child_count, 0, 1);
             arg = arg->middle;
         }
-    
         return;
     }
-    // Normal nodes: left, middle, right
+
+    /*---------------------------------------------
+     * Special handling: DOTNODE or ARROWNODE
+     *--------------------------------------------*/
+    if (root->nodetype == DOTNODE) {
+        print_field_access_node(root, new_prefix, "VAR", "FIELD");
+        return;
+    }
+
+    if (root->nodetype == ARROWNODE) {
+        print_field_access_node(root, new_prefix, "PTR", "FIELD");
+        return;
+    }
+
+    /*---------------------------------------------
+     * Default: other nodes (left, middle, right)
+     *--------------------------------------------*/
+    int child_count = 0;
     if (root->left) child_count++;
     if (root->middle) child_count++;
     if (root->right) child_count++;
 
+    int printed_children = 0;
+
     if (root->left) {
         printed_children++;
         tree_visual_print_tree_structure(root->left, new_prefix,
-                                 printed_children == child_count, 0,skip_middle);
+                                         printed_children == child_count, 0, skip_middle);
     }
+
     if (root->middle && !skip_middle) {
         printed_children++;
         tree_visual_print_tree_structure(root->middle, new_prefix,
-                                 printed_children == child_count, 0,skip_middle);
+                                         printed_children == child_count, 0, skip_middle);
     }
+
     if (root->right) {
         printed_children++;
         tree_visual_print_tree_structure(root->right, new_prefix,
-                                 printed_children == child_count, 0,skip_middle);
+                                         printed_children == child_count, 0, skip_middle);
     }
 }
 
+/*---------------------------------------------------------
+ * Public interface: Full detailed print
+ *--------------------------------------------------------*/
 void tree_visual_printTree(tnode *root) {
     if (root == NULL) {
         printf("Tree is empty.\n");
@@ -130,10 +203,13 @@ void tree_visual_printTree(tnode *root) {
 
     printf("\nTree Structure:\n");
     printf("================\n");
-    tree_visual_print_tree_structure(root, "", 1, 1,0);
+    tree_visual_print_tree_structure(root, "", 1, 1, 0);
     printf("\n");
 }
 
+/*---------------------------------------------------------
+ * Compact single-line view (for debugging)
+ *--------------------------------------------------------*/
 void tree_visual_print_tree_compact(tnode *root, int depth) {
     if (root == NULL)
         return;
@@ -142,12 +218,22 @@ void tree_visual_print_tree_compact(tnode *root, int depth) {
         printf("  ");
 
     printf("|- [%s]", nodetype_to_string(root->nodetype));
+
+    if (root->nodetype == DOTNODE) {
+        printf(" (DOTNODE '.')");
+        if (root->left && root->right)
+            printf(" [%s.%s]", root->left->varname, root->right->varname);
+    } else if (root->nodetype == ARROWNODE) {
+        printf(" (ARROWNODE '->')");
+        if (root->left && root->right)
+            printf(" [%s->%s]", root->left->varname, root->right->varname);
+    }
+
     if (root->varname)
         printf(" %s", root->varname);
     if (root->val != 0)
         printf(" val=%d", root->val);
 
-    // Extra info
     if (root->dimlist)
         print_dimlist(root->dimlist);
     if (root->plist)
@@ -165,6 +251,9 @@ void tree_visual_print_tree_compact(tnode *root, int depth) {
         tree_visual_print_tree_compact(root->right, depth + 1);
 }
 
+/*---------------------------------------------------------
+ * Public interface: Compact print
+ *--------------------------------------------------------*/
 void tree_visual_printTreeCompact(tnode *root) {
     if (root == NULL) {
         printf("Tree is empty.\n");
@@ -176,4 +265,3 @@ void tree_visual_printTreeCompact(tnode *root) {
     tree_visual_print_tree_compact(root, 0);
     printf("\n");
 }
-

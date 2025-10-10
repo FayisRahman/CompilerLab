@@ -11,6 +11,7 @@ ParamList* create_param(char* name, DataType type) {
     }
     node->name = strdup(name); // copies the string
     node->type = type;
+    node->varType = TYPE_VAR;
     node->next = NULL;
     return node;
 }
@@ -20,7 +21,7 @@ ParamList* append_param_to_list(ParamList* main, ParamList* t) {
     ParamList* curr = main;
     while (curr->next) {
         if(strcmp(curr->name,t->name) == 0){
-            printf("Error: Variable %s already present as function argument\n", curr->name);
+            printf("Error: Variable %s already present as (function argument or in tuple declaration)\n", curr->name);
             exit(0);
         }
         curr = curr->next;
@@ -39,10 +40,10 @@ int get_paramlist_length(ParamList* list){
     return a;
 }
 
-void display(ParamList* head) {
+void paramlist_display(ParamList* head) {
     ParamList* curr = head;
     while (curr) {
-        printf("Name: %s, Type: %d\n", curr->name, curr->type);
+        printf("Type: %s Name: %s\n", type_to_string(curr->type), curr->name);
         curr = curr->next;
     }
 }
@@ -52,7 +53,7 @@ void is_paramlist_correct(ParamList* main, ParamList* t){
     ParamList* t2 = t;
     while(t1){
         if(t2){
-            if(t1->type != t2->type){
+            if(t1->typeEntry != t2->typeEntry){
                 printf("Error:Incorrect set of arguments for the function->%s-%d and %s-%d\n",t1->name,t1->type,t2->name,t2->type);
                 exit(0);
             }
@@ -71,13 +72,13 @@ void is_paramlist_correct(ParamList* main, ParamList* t){
     }
 }
 
-void param_list_is_input_args_correct(ParamList* main, tnode* t){
+void paramlist_is_input_args_correct(ParamList* main, tnode* t){
     ParamList* t1 = main;
     tnode* t2 = t;
     int count = 0;
     while(t1){
         if(t2){
-            if(t1->type != t2->type){
+            if(t1->typeEntry != t2->typeEntry){
                 printf("Error:Incorrect set of arguments for the function->%s-%d and %s-%d\n",t1->name,t1->type,t2->varname,t2->type);
                 exit(0);
             }
@@ -106,3 +107,46 @@ void paramlist_destroy(struct ParamList* head) {
     }
     head = NULL;
 }
+
+ParamList* paramlist_deepcopy(const ParamList* src) {
+    if (!src) return NULL;
+
+    ParamList* head = NULL;
+    ParamList* tail = NULL;
+
+    while (src) {
+        ParamList* node = malloc(sizeof(ParamList));
+        node->name = strdup(src->name);   // duplicate name string
+        node->type = src->type;
+        node->size = src->size;
+        node->typeEntry = src->typeEntry;
+        node->varType = src->varType;
+        node->next = NULL;
+
+        if (!head)
+            head = node;
+        else
+            tail->next = node;
+
+        tail = node;
+        src = src->next;
+    }
+
+    return head;
+}
+
+int paramlist_get_size(ParamList* plist){
+    int ans = 0;
+    int count = -1;
+    while(plist){
+        count++;
+        if(plist->varType != TYPE_PTR){
+            ans += plist->typeEntry->size;
+        }else{
+            ans += 1;
+        }
+        plist = plist->next;
+    }
+    return ans;
+}
+

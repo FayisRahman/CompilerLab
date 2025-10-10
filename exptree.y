@@ -10,6 +10,8 @@
     #include "dim_node.h"
     #include "param_list.h"
     #include "tree_visualization.h"
+    #include "type_table.h"
+    #include "exptree.h"
 
     extern int yylex();
     extern FILE *yyin;
@@ -28,21 +30,22 @@
     struct Lsymbol* lsymbol;
     struct DimNode* DimList;
     struct ParamList* plist;
+    struct TypeTable* type;
 }
 %token<node> WRITE READ INT STR ID NUM
 %token<string>  STRING
-%token begin end MAIN DECL ENDDECL 
-%token PLUS MINUS DIV MUL 
+%token begin end MAIN DECL ENDDECL TYPE ENDTYPE TUPLE
+%token PLUS MINUS DIV MUL ARROW
 %token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK RETURN BREAKPOINT
 %token GT GE LT LE NE EQ AND OR
 
-%type<integer> Type
+%type<type> Type
 %type<node> E  ArgList Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt body 
 %type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Debugstmt
 %type<node>  FDefBlock MainBlock
 %type<gsymbol> Gid GidList
 %type<DimList> DimList DimAccess 
-%type<plist> Paramlist Param ParamDecl
+%type<plist> Paramlist Param ParamDecl TIdDecl TIdList 
 %type<lsymbol> IdList LDecList LDecl LdeclBlock IdDecl
 
 %left OR
@@ -53,15 +56,16 @@
 %left MUL DIV MOD
 %%
 
-Program : GDeclBlock FDefBlock MainBlock {}
-        | GDeclBlock MainBlock {}
-        | MainBlock {stack_address = curr_stack_address;driver_codegen(fptr);}
+Program : TDeclBlock GDeclBlock FDefBlock MainBlock {}
+        | TDeclBlock GDeclBlock MainBlock {}
+        | TDeclBlock MainBlock {}
         ;
 
 GDeclBlock  : DECL GDeclList ENDDECL {
                 stack_address = curr_stack_address;
                 setup_pointers_codegen(fptr,top,NULL);
                 is_global_vars_declared = 1;
+                print_gsymbol_table();
                 printf("------Global Variables Declared-----\n");
                 driver_codegen(fptr);
             }
@@ -82,7 +86,14 @@ GDecl   : Type GidList ';' {
             while(temp){
                 temp1 = temp->next;
                 temp->next = NULL;
-                add_gsymbol(temp,$1);
+                temp->size = $1->size;
+                if(temp->varType == TYPE_FUNCT_PTR)temp->size = 1;
+                if($1->type == TYPE_TUPLE && temp->varType == TYPE_PTR){
+                    temp->size++;
+                }
+                add_gsymbol(temp,$1->type);
+                temp->typeEntry = $1;
+                temp->type = $1->type;
                 temp = temp1;
             }
         }
@@ -97,25 +108,25 @@ GidList : GidList ',' Gid{
 Gid     : ID DimList {
             Gsymbol* temp = create_symbol_id_with_dims($1->varname, $2);
             $1->Gentry = temp;
-            $1->type = TYPE_ARR;
-            $1->Gentry->varType = TYPE_ARR;
-            if(!$2){
-                $1->type = TYPE_VAR;
+            if($2){
+                $1->type = TYPE_ARR;
+                $1->Gentry->varType = TYPE_ARR;
+            }else{
                 $1->Gentry->varType = TYPE_VAR;
             }
+
             $$ = temp;
         }
         | MUL ID {
             Gsymbol* temp = create_gsymbol_id($2->varname, 2);
             $2->Gentry = temp;
-            $2->type = TYPE_PTR;
             temp->varType = TYPE_PTR;
             $$ = temp;
         } //here i used MUL because lex returnes MUL when the it captures '*' 
         | ID '(' Paramlist ')' {
             int size = get_paramlist_length($3);
             Gsymbol* temp = create_gsymbol_id($1->varname, 1);
-            temp->plist = $3;
+            temp->plist = paramlist_deepcopy($3);
             temp->varType = TYPE_FUNCT;
             temp->flabel = flabel_count++;
             $$ = temp;
@@ -123,12 +134,37 @@ Gid     : ID DimList {
         | MUL ID '(' Paramlist ')' {
             int size = get_paramlist_length($4);
             Gsymbol* temp = create_gsymbol_id($2->varname, 1);
-            temp->plist = $4;
+            temp->plist = paramlist_deepcopy($4);;
             temp->varType = TYPE_FUNCT_PTR;
             temp->flabel = flabel_count++;
             $$ = temp;
         }
         ;
+
+
+TDeclBlock   : TYPE TDeclList ENDTYPE {
+                typetable_print(type_table);
+            }
+            |   {}
+            ;
+
+TDeclList   : TDeclList TDecl {}
+            | TDecl {}
+            ;
+
+TDecl       : TUPLE ID '{' TIdList '}' ';' {
+                typetable_create($2->varname, TYPE_TUPLE, $4);
+            }
+
+TIdList     : TIdList ';' TIdDecl {
+                $$ = append_param_to_list($1,$3);
+            }
+            | TIdDecl { $$ = $1; }
+
+TIdDecl     : Type ID {
+                $$ = create_param($2->varname, $1->type);
+                $$->typeEntry = $1;
+            }
 
 // ------------------------------------------------------------------------//
 
@@ -137,13 +173,13 @@ FDefBlock   : FDefBlock Fdef {}
             ;
 
 Fdef        :   Type ID '(' Paramlist ')' '{' LdeclBlock body '}' {    
-
-                function_block($1,$2,$4,$8,TYPE_FUNCT);
+                
+                function_block($1->type,$2,paramlist_deepcopy($4),$8,TYPE_FUNCT);
 
             }
             |   Type MUL ID '(' Paramlist ')' '{' LdeclBlock body '}' {
-
-                function_block($1, $3,$5,$9, TYPE_FUNCT_PTR);
+                
+                function_block($1->type, $3,paramlist_deepcopy($5),$9, TYPE_FUNCT_PTR);
 
             }
             ;
@@ -151,25 +187,31 @@ Fdef        :   Type ID '(' Paramlist ')' '{' LdeclBlock body '}' {
 Paramlist   : Paramlist ',' ParamDecl {
                 $$ = append_param_to_list($1,$3);
                 if(is_global_vars_declared == 1){
-                    Lsymbol* t1 = create_lsymbol_id($3->name, 1, $3->varType);
+                    Lsymbol* t1 = create_lsymbol_id($3->name, $3->varType == TYPE_PTR ? 1 : $3->size, $3->varType);
                     t1->type = $3->type;
+                    t1->typeEntry = $3->typeEntry;
                     curr_lsymbol_table = append_lsymbol_id_list(curr_lsymbol_table, t1);
                 }
             }
             | ParamDecl {
                 $$ = $1;
                 if(is_global_vars_declared == 1){
-                    Lsymbol* t1 = create_lsymbol_id($1->name, 1, $1->varType);
+                    Lsymbol* t1 = create_lsymbol_id($1->name, $1->size, $1->varType);
                     t1->type = $1->type;
+                    t1->typeEntry = $1->typeEntry;
                     curr_lsymbol_table =  append_lsymbol_id_list(curr_lsymbol_table, t1);
                 }
+                
             }
             |   /*paramDecl can be empty */ {$$ = NULL;curr_lsymbol_table= NULL;}
             ;
 
 ParamDecl   : Type Param {
-                $2->type = $1;
+                $2->type = $1->type;
+                $2->typeEntry = $1;
+                $2->size = $1->size;
                 $$ = $2;
+                
             }
             ;
 
@@ -221,7 +263,11 @@ LDecList    : LDecList LDecl {
 LDecl       : Type IdList ';' {
                 Lsymbol* temp = $2;
                 while(temp){
-                    temp->type = $1;
+                    temp->type = $1->type;
+                    temp->typeEntry = $1;
+                    if(temp->typeEntry->type == TYPE_TUPLE){
+                        temp->type = TYPE_TUPLE;
+                    }
                     temp = temp->next;
                 }
                 $$ = $2;
@@ -238,10 +284,14 @@ IdList      : IdList ',' IdDecl  {
             ;
 
 IdDecl      : ID {
-                $$ = create_lsymbol_id($1->varname, 1, TYPE_VAR);
+                $$ = create_lsymbol_id($1->varname, curr_type->size, TYPE_VAR);
             }
             | MUL ID{
-                $$ = create_lsymbol_id($2->varname, 2, TYPE_PTR);
+                int size = 2;
+                if(curr_type->type = TYPE_TUPLE){
+                    size = 1 + curr_type->size;
+                }
+                $$ = create_lsymbol_id($2->varname, size, TYPE_PTR);
                 printf("ptr name: %s\n",$2->varname);
             }
 ArgList     : ArgList ',' E {
@@ -251,12 +301,15 @@ ArgList     : ArgList ',' E {
             | E { $$ = $1;}
             ;
 
+
 //-------------------------------------------------------------------------//
 
 MainBlock : Type MAIN '(' ')' '{' LdeclBlock body '}' {
 
         //we globally declare the current local symbol so as to avoid restructuring the entire functions since it is being used everywhere and change it would be tiresome
         print_lsymbol_table();
+
+        curr_function_type = $1;
 
         tree_visual_printTree($7);
 
@@ -270,7 +323,7 @@ MainBlock : Type MAIN '(' ')' '{' LdeclBlock body '}' {
 
         int curr_offset = get_curr_offset(curr_lsymbol_table);
 
-        fprintf(fptr, "ADD SP, %d\n", curr_offset);
+        if(curr_offset!=0)fprintf(fptr, "ADD SP, %d\n", curr_offset);
 
         freeReg();
 
@@ -296,8 +349,16 @@ Slist   : Slist Stmt {
         }
         ;
 
-Type        : INT { $$ = TYPE_INT; }
-            | STR { $$ = TYPE_STRING; }
+Type        : INT { $$ = typetable_lookup("int"); curr_type = $$;}
+            | STR { $$ = typetable_lookup("str"); curr_type = $$;}
+            | ID {
+                curr_type = typetable_lookup($1->varname);
+                if(curr_type == NULL){
+                    printf("Error: No UserDefined struct %s exists\n", $1->varname);
+                    exit(0); 
+                }
+                $$ = curr_type;
+            }
             ;
 
 DimList : DimList '[' NUM ']' {
@@ -340,15 +401,25 @@ AsgStmt : ID '=' E ';' {
             int varType = get_var_type(ptr1,ptr2,$1->varname);
             if(varType != TYPE_VAR && varType != TYPE_PTR){
                 printf("Error: %s is not of variable type\n",$1->varname);
+                printf("%s\n",type_to_string(varType));
                 exit(1);
             }
+            TypeTable* type = NULL;
             if(ptr2){
                 check_data_types(ptr2->type,$3->type,ptr2->type);
+                type = ptr2->typeEntry;
             }else if(ptr1){
                 check_data_types(ptr1->type,$3->type,ptr1->type);
+                type = ptr1->typeEntry;
             }else{
                 printf("Error: Variable %s Not Declared\n", $1->varname);
                 exit(0);
+            }
+            if(type != $3->typeEntry){
+                char* returnType = $3->typeEntry->name;
+                char* returningType = type->name;
+                printf("Error: Assignment with different data types, LHS => %s and RHS => %s\n", returningType, returnType);
+		        exit(1);
             }
             $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,$1, NULL, $3);
         }
@@ -382,6 +453,62 @@ AsgStmt : ID '=' E ';' {
             }
             tnode* t = createTree(0,TYPE_PTR, "*", PTRNODE, NULL,$2, NULL, NULL);
             $$ = createTree(0,TYPE_PTR, "=", ASSIGNMENT,NULL,t, NULL, $4);
+        }
+        | ID '.' ID '=' E ';' {
+            Gsymbol* ptr1 = find_gsymbol($1->varname);
+            Lsymbol* ptr2 = find_lsymbol($1->varname);
+            TypeTable* type = NULL;
+            if(ptr2){
+                type = ptr2->typeEntry;
+            }else if(ptr1){
+                type = ptr1->typeEntry;
+            }else{
+                printf("Error: Variable %s Not Declared\n", $1->varname);
+                exit(0);
+            }
+            if(type->type != TYPE_TUPLE){
+                printf("Error: Variable %s is not of tuple type\n", $1->varname);
+                exit(0);
+            }
+
+            if(typetable_lookup_id_type(type,$3->varname) != $5->type){
+                printf("Error: Variable %s Not Declared in the tuple definition\n", $3->varname);
+                exit(0);
+                
+            }
+            tnode* dot = createTree(0,typetable_lookup_id_type(type,$3->varname),".",DOTNODE,NULL,$1,NULL,$3);
+            $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,dot, NULL, $5);
+            $$->typeEntry = type;
+        }
+        | ID ARROW ID '=' E ';' {
+            Gsymbol* ptr1 = find_gsymbol($1->varname);
+            Lsymbol* ptr2 = find_lsymbol($1->varname);
+            TypeTable* type = NULL;
+            if(ptr2){
+                type = ptr2->typeEntry;
+            }else if(ptr1){
+                type = ptr1->typeEntry;
+            }else{
+                printf("Error: Variable %s Not Declared\n", $1->varname);
+                exit(0);
+            }
+            if(type->type != TYPE_TUPLE){
+                printf("Error: Variable %s is not of tuple type\n", $1->varname);
+                exit(0);
+            }
+
+            if(typetable_lookup_id_type(type,$3->varname) != $5->type){
+                printf("Error: Variable %s Not Declared in the tuple definition\n", $3->varname);
+                exit(0);
+                
+            }
+            if(get_var_type(ptr1,ptr2,$3->varname) != TYPE_PTR){
+                printf("Error: %s is not of pointer type, use . operator\n", $3->varname);
+                exit(0);
+            }
+            tnode* arrow = createTree(0,typetable_lookup_id_type(type,$3->varname),"->",ARROWNODE,NULL,$1,NULL,$3);
+            $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,arrow, NULL, $5);
+            $$->typeEntry = type;
         }
         ;
 
@@ -425,8 +552,9 @@ Jumpstmt    : CONTINUE ';' {
             | BREAK ';' {
                 $$ = createJumpNode(BREAKNODE);
             }
-            | RETURN E ';' {  
-                $$ = createTree(0, TYPE_NULL, NULL, RETURNNODE, NULL,$2, NULL,NULL);
+            | RETURN E ';' { 
+                $$ = createTree(0, $2->type, NULL, RETURNNODE, NULL,$2, NULL,NULL);
+                $$->typeEntry = $2->typeEntry;
             }
             ;
 
@@ -438,22 +566,32 @@ Debugstmt : BREAKPOINT ';' {
 E   : E PLUS E {
         check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "+", OPERATOR,NULL,$1, NULL, $3);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     | E MINUS E {
         check_data_types($1->type,$3->type,TYPE_INT);
         $$ =  createTree(0, $1->type , "-", OPERATOR,NULL,$1, NULL, $3);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     | E DIV E {
         check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "/", OPERATOR,NULL,$1, NULL, $3);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     | E MUL E {
         check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "*", OPERATOR,NULL,$1, NULL, $3);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     | E MOD E {
         check_data_types($1->type,$3->type,TYPE_INT);
         $$ = createTree(0, $1->type, "%", OPERATOR,NULL,$1, NULL, $3);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     | '(' E ')' {
         $$ = $2;
@@ -490,14 +628,44 @@ E   : E PLUS E {
         check_data_types($1->type,$3->type,TYPE_BOOL);
         $$ = createTree(0,TYPE_BOOL,"||",OPERATOR,NULL,$1,NULL,$3);
     }
+    | ID '.' ID {
+        Gsymbol* ptr1 = find_gsymbol($1->varname);
+        Lsymbol* ptr2 = find_lsymbol($1->varname);
+        int type = get_type(ptr1,ptr2,$1->varname);
+        check_data_types(type,TYPE_TUPLE,TYPE_TUPLE);
+        int varType = get_var_type(ptr1,ptr2,$1->varname);
+        if(varType == TYPE_PTR){
+            printf("Error: %s is of pointer type, use -> operator to access its attributes\n", $1->varname);
+            exit(0);
+        }
+        TypeTable* typet = get_typetable(ptr1,ptr2,$1->varname);
+        $$ = createTree(0,typetable_lookup_id_type(typet,$3->varname),".",DOTNODE,NULL,$1,NULL,$3);
+        $$->typeEntry = typet;
+    }
+    | ID ARROW ID {
+        Gsymbol* ptr1 = find_gsymbol($1->varname);
+        Lsymbol* ptr2 = find_lsymbol($1->varname);
+        int type = get_type(ptr1,ptr2,$1->varname);
+        check_data_types(type,TYPE_TUPLE,TYPE_TUPLE);
+        int varType = get_var_type(ptr1,ptr2,$1->varname);
+        if(varType != TYPE_PTR){
+            printf("Error: %s is not of pointer type, use . operator to access its attributes\n", $1->varname);
+            exit(0);
+        }
+        TypeTable* typet = get_typetable(ptr1,ptr2,$1->varname);
+        $$ = createTree(0,typetable_lookup_id_type(typet,$3->varname),"->",ARROWNODE,NULL,$1,NULL,$3);
+        $$->typeEntry = typet;
+    }
     | ID '(' ')' {
         Gsymbol* ptr1 = find_gsymbol($1->varname);
         if(!ptr1 || ptr1->varType != TYPE_FUNCT || ptr1->varType != TYPE_FUNCT_PTR){
             printf("Error: No function with name %s declared\n",$1->varname);
             exit(0);
         }
-        param_list_is_input_args_correct(ptr1->plist, NULL);
+        paramlist_is_input_args_correct(ptr1->plist, NULL);
+        TypeTable* typet = get_typetable(ptr1,NULL,$1->varname);
         $$ = createTree(0,ptr1->type,"funtion()",FUNCTIONNODE,NULL,$1,NULL,NULL);
+        $$->typeEntry = typet;
     }
     | ID '(' ArgList ')' {
         Gsymbol* ptr1 = find_gsymbol($1->varname);
@@ -506,18 +674,24 @@ E   : E PLUS E {
             printf("Error: No function with name %s declared\n",$1->varname);
             exit(0);
         }
-        param_list_is_input_args_correct(ptr1->plist, $3);
+        paramlist_is_input_args_correct(ptr1->plist, $3);
+        TypeTable* typet = get_typetable(ptr1,NULL,$1->varname);
         $$ = createTree(0,ptr1->type,"funtion()",FUNCTIONNODE,NULL,$1,NULL,$3);
+        $$->typeEntry = typet;
     }
     | ID {
         Gsymbol* ptr1 = find_gsymbol($1->varname);
         Lsymbol* ptr2 = find_lsymbol($1->varname);
+        
         int varType = get_var_type(ptr1,ptr2,$1->varname);
+        printf("%s is of %s\n",$1->varname, type_to_string(varType));
         if(varType != TYPE_VAR && varType != TYPE_PTR){
             printf("Error: %s is not of variable type\n",$1->varname);
             exit(1);
         }
+        TypeTable* typet = get_typetable(ptr1,ptr2,$1->varname);
         $$ = createTree(0, get_type(ptr1,ptr2,$1->varname), $1->varname, LEAFNODE, ptr1,NULL, NULL,NULL);
+        $$->typeEntry = typet;
     }
     | ID DimAccess {
         Gsymbol* temp = find_gsymbol($1->varname);
@@ -531,27 +705,51 @@ E   : E PLUS E {
         check_not_out_of_bounds($2,$1->Gentry->dimlist);
         int val = get_pos($2,$1->Gentry->dimlist);
         $$ = createTree(val, temp->type, $1->varname, LEAFNODE, temp,NULL, NULL,NULL);
+        TypeTable* typet = get_typetable(temp,NULL,$1->varname);
+        $$->typeEntry = typet;
         $$->dimlist = $2;
     }
     | MUL ID { //here i used MUL because lex returnes MUL when the it captures '*'
-        Gsymbol* temp = find_gsymbol($2->varname);
-        $2->Gentry = temp;
+        Gsymbol* ptr1 = find_gsymbol($2->varname);
+        Lsymbol* ptr2 = find_lsymbol($2->varname);
 
-        $$ = createTree(0, TYPE_INT, "*", PTRNODE, temp,$2, NULL,NULL);
+        if(!ptr1 && !ptr2){
+            printf("Error: pointer %s is not declared\n", $2->varname);
+        }
+        $2->Gentry = ptr1;
+        $$ = createTree(0, TYPE_INT, "*", PTRNODE, ptr1,$2, NULL,NULL);
+        TypeTable* typet = get_typetable(ptr1,ptr2,$2->varname);
+        $$->typeEntry = typet;
+        $2->typeEntry = typet;
     }
     | '&' ID {
-        Gsymbol* temp = find_gsymbol($2->varname);
-        $2->Gentry = temp;
+        Gsymbol* ptr1 = find_gsymbol($2->varname);
+        Lsymbol* ptr2 = find_lsymbol($2->varname);
+
+        if(!ptr1 && !ptr2){
+            printf("Error: pointer %s is not declared\n", $2->varname);
+        }
+        $2->Gentry = ptr1;
+
         $$ = createTree(0, TYPE_INT, "&", ADDRNODE, NULL,$2, NULL,NULL);
+        TypeTable* typet = get_typetable(ptr1,ptr2,$2->varname);
+        $$->typeEntry = typet;
+        $2->typeEntry = typet;
     }
     | STRING {
-        $$ = createTree(0, TYPE_STRING, $1, LEAFNODE,NULL, NULL, NULL,NULL);
+        $$ = createTree(-10, TYPE_STRING, $1, LEAFNODE,NULL, NULL, NULL,NULL);
+        TypeTable* typet = typetable_lookup("str");
+        $$->typeEntry = typet;
     }
     | NUM {
         $$ = createTree($1->val, TYPE_INT, NULL, LEAFNODE, NULL,NULL, NULL,NULL);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     | MINUS NUM {
         $$ = createTree(-$2->val, TYPE_INT, NULL, LEAFNODE, NULL,NULL, NULL,NULL);
+        TypeTable* typet = typetable_lookup("int");
+        $$->typeEntry = typet;
     }
     ;
 DimAccess   : DimAccess '[' E ']' {
@@ -563,6 +761,7 @@ DimAccess   : DimAccess '[' E ']' {
                 $$ = append_dim_with_id(NULL,$2);
             }
             ;
+
 %%
 
 
@@ -570,14 +769,15 @@ void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType fu
     Gsymbol* temp = find_gsymbol($2->varname);
     if($1 != temp->type || functionType != temp->varType){
         printf("Error: Incorrect return type for the Function %s\n", $2->varname);
+        printf("%d---%d\n",$1,temp->type);
         exit(0);
     }
-
+    curr_function_type = temp->typeEntry;
     is_paramlist_correct(temp->plist,$4);
 
     print_lsymbol_table();
 
-    
+    curr_funct_return_type = functionType;
     
     //we globally declare the current local symbol so as to avoid restructuring the entire functions since it is being used everywhere and change it would be tiresome 
     // curr_lsymbol_table = $7;
@@ -589,23 +789,29 @@ void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType fu
     fprintf(fptr, "PUSH R%d\n", p);
     fprintf(fptr, "MOV BP, SP\n");
     
-    int param_list_size = get_paramlist_length($4);
+    int param_list_size = paramlist_get_size($4);
 
     //setting up the argument values into the respective addresses in the from the local symbol table
-    
-    while(t){
+    int count = param_list_size;
+    int returnSize = curr_function_type->size;
+    if(functionType == TYPE_FUNCT_PTR){
+        returnSize = 1;
+    }
+    while(count--){
         fprintf(fptr, "MOV R%d, SP\n", p);
-        fprintf(fptr, "SUB R%d, %d\n", p, param_list_size + 3 - 1); //here the 3 is the RETURN VALUE, RETURN ADDRESS, OLD BP and the -1 for preventing the overreduction as subtracting curr_offset u reach the OLD BP 
+        fprintf(fptr, "SUB R%d, %d\n", p, param_list_size + 2 + returnSize - 1); //here the 3 is the RETURN VALUE, RETURN ADDRESS, OLD BP and the -1 for preventing the overreduction as subtracting curr_offset u reach the OLD BP 
                                                                     // and from there to reach the return value part u just need to subtract 2 and to reach the 1st arg u just need to subtract the whole paramlist
         fprintf(fptr, "MOV R%d, [R%d]\n", p, p);
         fprintf(fptr, "PUSH R%d\n", p);
-        t = t->next;
     }
 
     // This is to set up space for the locally declared variables in the function
     int curr_offset = get_curr_offset(curr_lsymbol_table) - param_list_size;
 
-    fprintf(fptr, "ADD SP, %d\n", curr_offset);
+    fprintf(fptr, "MOV R%d, \"SPACE\"\n", p);
+    for(int i=0;i<curr_offset;i++){
+        fprintf(fptr,"PUSH R%d\n",p);
+    }
 
     freeReg();
 
@@ -613,7 +819,8 @@ void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType fu
 
     Lsymbol* temp1 = curr_lsymbol_table;
 
-    while(param_list_size-- > 0){
+    int param_list_length = get_paramlist_length($4);
+    while(param_list_length-- > 0){
         temp1 = temp1->next;
     }
 
@@ -637,8 +844,11 @@ void yyerror(char* s){
 
 
 int main() {
+    
     yyin = fopen("a.txt", "r");
     fptr = fopen("a.xsm", "w");
+    typetable_create("int", TYPE_INT,  NULL);
+    typetable_create("str", TYPE_STRING, NULL);
     make_header(fptr);
     yyparse();
     print_gsymbol_table();

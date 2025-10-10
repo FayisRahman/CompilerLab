@@ -4,6 +4,8 @@
 
 #include "AST.h"
 #include "dim_node.h"
+#include "type_table.h"
+#include "exptree.h"
 
 typedef struct Gsymbol {
     char* name;       // name of the variable
@@ -14,6 +16,7 @@ typedef struct Gsymbol {
     struct Gsymbol *next;
     struct DimNode* dimlist;
     struct ParamList* plist;
+    struct TypeTable* typeEntry;
     int flabel;
 }Gsymbol;
 

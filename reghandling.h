@@ -6,6 +6,8 @@
 #include "global_symbol_table.h"
 #include "local_symbol_table.h"
 #include "AST.h"
+#include "exptree.h"
+#include "type_table.h"
 
 extern int stack_address;
 
@@ -78,7 +80,7 @@ void setup_pointers_codegen(FILE* fptr,Gsymbol* gptr, Lsymbol* lptr);
     THIS RETURNS THE ADDRESS OF TEH VARIABLE AND IN THE SCOPE OF THIS STAGE I HAVE MADE IT POSSIBLE ONLY TO
     GET THE ADDRESS OF VARIABLES AND WE CANT GET THE ADDRESS OF ARRAYS AND POINTER DATA TYPE
 */
-int addr_node_codegen(FILE* fptr,tnode* t,int regNo); //used on RHS of an assignment operator only
+int addr_node_codegen(FILE* fptr,tnode* t); //used on RHS of an assignment operator only
 
 /*
     THIS FUNCTION RETURNS THE POINTER DATA BASED ON ITS SIDE AND IF ITS ON LHS THE side ARG IS 0 AND IF ITS ON RHS THE side ARG is 1
@@ -90,7 +92,7 @@ int addr_node_codegen(FILE* fptr,tnode* t,int regNo); //used on RHS of an assign
     |    1       RHS   |
     |__________________|
 */
-int ptr_node_codegen(FILE* fptr,tnode* t,int regNo,int side); 
+int ptr_node_codegen(FILE* fptr,tnode* t,int side); 
 
 // TO CHECK IF THE ARRAY ACCESS IS IN BOUND
 void index_overflow_check_codegen(FILE* fptr, int regNo, int size);
@@ -107,12 +109,18 @@ void create_label_with_message(FILE* fptr,int label_no,char* msg);
 
 
 //TO GENERATE THE CODE FOR A FUNCTION AND SET UP THE ACTIVATION RECORD
-int function_node_codegen(FILE* fptr,tnode* t, int regNo);
+int function_node_codegen(FILE* fptr,tnode* t);
 
 //TO GENERATE THE RETURN CODE AND TO REMOVE THE UNNECESSARY STACK CONTENTS AND REMOVE THE ACTIVATION RECORD OF THE FUNCTION
 void return_node_codegen(FILE* fptr, tnode* t);
 
 //THIS IS THE DRIVER CODE THAT CALLS THE MAIN FUNCTION AND STORES THE RETURN VALUE SO THAT IT CAN BE LATER USED FOR FURTHER PROCCESSING IF NESCCESSARY AND ALL WITH THIS WE CAN CONSIDER MAIN AS A FUNCTION ITSELF AND NOT AS A SPECIAL FUCNTION
 void driver_codegen(FILE* fptr);
+
+//THIS GENERATES THE CODE FOR THE DOT OPERATOR WHICH IS TUPLE_VAR_NAME.ATTRIBUTE AND RETURNS THE REGISTER NO. IT STORES THE VALUE IN
+int dot_node_codegen(FILE* fptr, tnode* t);
+
+//THIS GENERATES THE CODE FOR THE ARROW OPERATOR WHICH IS TUPLE_VAR_NAME->ATTRIBUTE AND RETURNS THE REGISTER NO. IT STORES THE VALUE IN
+int arrow_node_codegen(FILE* fptr,tnode* t);
 
 #endif
