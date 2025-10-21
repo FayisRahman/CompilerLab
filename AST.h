@@ -40,7 +40,7 @@ struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r);
 
 void ast_destroy(struct tnode* head);
 //to check that during operations and assignments the data types are correct
-void check_data_types(int t,int q,int type);
+void check_data_types(int t,int q,int type,int line);
 
 const char* nodetype_to_string(int nodetype);
 const char* type_to_string(int type);

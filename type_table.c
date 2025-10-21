@@ -50,7 +50,17 @@ TypeTable* typetable_lookup(const char* name){
         head = head->next;
     }
 
+
+
 }
+
+void typetable_append_plist(const char* name, ParamList* plist){
+
+    TypeTable* temp = typetable_lookup(name);
+    if(plist) temp->plist = paramlist_deepcopy(plist);
+    if(plist) temp->size = get_paramlist_length((ParamList*) plist);
+}
+
 void typetable_destroy() {
 
     TypeTable* head = type_table;
@@ -93,7 +103,7 @@ void typetable_print(const TypeTable* head) {
                        (p->type == TYPE_INT ? "INT" :
                         p->type == TYPE_STRING ? "STRING" :
                         p->type == TYPE_BOOL ? "BOOL" :
-                        p->type == TYPE_TUPLE ? "TUPLE" : "UNKNOWN"),
+                        p->type == TYPE_TUPLE ? p->typeEntry->name : "UNKNOWN"),
                        p->name);
                 if (p->next) printf(", ");
                 p = p->next;

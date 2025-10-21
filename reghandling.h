@@ -118,9 +118,9 @@ void return_node_codegen(FILE* fptr, tnode* t);
 void driver_codegen(FILE* fptr);
 
 //THIS GENERATES THE CODE FOR THE DOT OPERATOR WHICH IS TUPLE_VAR_NAME.ATTRIBUTE AND RETURNS THE REGISTER NO. IT STORES THE VALUE IN
-int dot_node_codegen(FILE* fptr, tnode* t);
+int dot_node_codegen(FILE* fptr, tnode* t,int is_read);
 
 //THIS GENERATES THE CODE FOR THE ARROW OPERATOR WHICH IS TUPLE_VAR_NAME->ATTRIBUTE AND RETURNS THE REGISTER NO. IT STORES THE VALUE IN
-int arrow_node_codegen(FILE* fptr,tnode* t);
+int arrow_node_codegen(FILE* fptr,tnode* t, int is_read);
 
 #endif

@@ -78,8 +78,8 @@ void paramlist_is_input_args_correct(ParamList* main, tnode* t){
     int count = 0;
     while(t1){
         if(t2){
-            if(t1->typeEntry != t2->typeEntry){
-                printf("Error:Incorrect set of arguments for the function->%s-%d and %s-%d\n",t1->name,t1->type,t2->varname,t2->type);
+            if(t1->type != t2->type ){
+                printf("Error:Incorrect set of arguments for the function->%s->%d and %s->%d\n",t1->name,t1->type,t2->varname,t2->type);
                 exit(0);
             }
         }else{

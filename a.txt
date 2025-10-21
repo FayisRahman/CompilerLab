@@ -1,31 +1,31 @@
+type
+
+tuple acc {
+    int name;
+    int b;
+    str g;
+    acc left;
+    acc right;
+
+};
+
+endtype
+
 decl
- int fun(int x),a;
+    int n;
 enddecl
-
-int fun(int x)
-{
- begin
-  if(x >= 91) then
-   a = 91;
-  else
-   a = fun(fun(x+11));
-  endif;
-
-  return a;
- end
-}
-
-int main()
-{
- decl
-  int b,c;
- enddecl
-
- begin
-  read(b);
-  c = fun(b);
-  write(c);
-
-  return 0;
- end
+int main(){
+    decl
+        int result;
+        acc a,x;
+    enddecl
+    begin
+        read(a.name);
+    read(x.name);
+    if (a.name == x.name) then
+    breakpoint;
+     write("They have same names");
+    endif;
+        return 0;
+    end
 }

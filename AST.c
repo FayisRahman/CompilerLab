@@ -64,9 +64,9 @@ struct tnode* createVarNode(int type, char* c, struct tnode *l,struct tnode *r){
     return createTree(0, type, c, VARNODE,NULL, l, NULL,r);
 }
 
-void check_data_types(int t,int q,int type){
+void check_data_types(int t,int q,int type,int line){
     if(t!=q || t != type){
-        printf("Error: Incorrect data type %s but requires %s\n",type_to_string(t), type_to_string(q));
+        printf("Error: Incorrect data type %s but requires %s %d\n",type_to_string(t), type_to_string(q),line);
         exit(1);
     }
 }
