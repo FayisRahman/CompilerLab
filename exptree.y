@@ -12,6 +12,7 @@
     #include "tree_visualization.h"
     #include "type_table.h"
     #include "exptree.h"
+    #include "./TreeViz/tree_viz.h"
 
     extern int yylex();
     extern FILE *yyin;
@@ -32,17 +33,17 @@
     struct ParamList* plist;
     struct TypeTable* type;
 }
-%token<node> WRITE READ INT STR ID NUM
+%token<node> WRITE READ INT STR ID NUM NILL
 %token<string>  STRING
-%token begin end MAIN DECL ENDDECL TYPE ENDTYPE TUPLE
+%token begin end MAIN DECL ENDDECL TYPE ENDTYPE TUPLE STRUCT
 %token PLUS MINUS DIV MUL ARROW
-%token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK RETURN BREAKPOINT
+%token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK RETURN BREAKPOINT FREE ALLOC INITIALIZE 
 %token GT GE LT LE NE EQ AND OR
 
 %type<string> TDeclStart
 %type<type> Type
-%type<node> E  ArgList Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt body 
-%type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Debugstmt
+%type<node> E  ArgList Program Slist Stmt InputStmt OutputStmt AsgStmt Ifstmt body Field
+%type<node>  Whilestmt DoWhilestmt RepeatUntiltstmt Jumpstmt Debugstmt Allocstmnt
 %type<node>  FDefBlock MainBlock
 %type<gsymbol> Gid GidList
 %type<DimList> DimList DimAccess 
@@ -87,15 +88,16 @@ GDecl   : Type GidList ';' {
             while(temp){
                 temp1 = temp->next;
                 temp->next = NULL;
-                if($1->type == TYPE_TUPLE){
+                if($1->type == TYPE_TUPLE && temp->varType != TYPE_ARR){
                     temp->size = $1->size;
                 }
                 if(temp->varType == TYPE_FUNCT_PTR)temp->size = 1;
                 if($1->type == TYPE_TUPLE && temp->varType == TYPE_PTR){
                     temp->size++;
                 }
-                add_gsymbol(temp,$1->type);
                 temp->typeEntry = $1;
+                add_gsymbol(temp,$1->type);
+                
                 temp->type = $1->type;
                 temp = temp1;
             }
@@ -146,7 +148,7 @@ Gid     : ID DimList {
 
 
 TDeclBlock   : TYPE TDeclList ENDTYPE {
-                typetable_print(type_table);
+                // typetable_print(type_table);
             }
             |   {}
             ;
@@ -159,10 +161,16 @@ TDeclStart  : TUPLE ID {
                 typetable_create($2->varname,TYPE_TUPLE,NULL);
                 $$ = $2->varname;
             }
+            | STRUCT ID {
+                typetable_create($2->varname,TYPE_TUPLE,NULL);
+                $$ = $2->varname;
+            }
             ;
 
 TDecl       : TDeclStart '{' TIdList ';' '}' ';' {
                 typetable_append_plist((char*) $1, $3);
+                ParamList* temp = $3;
+                
                 
             }
 
@@ -306,7 +314,12 @@ IdDecl      : ID {
                 printf("ptr name: %s\n",$2->varname);
             }
 ArgList     : ArgList ',' E {
-                $1->middle = $3;
+
+                tnode* temp = $1;
+                while(temp->middle){
+                    temp = temp->middle;
+                }
+                temp->middle = $3;
                 $$ = $1;
             }
             | E { $$ = $1;}
@@ -322,7 +335,8 @@ MainBlock : Type MAIN '(' ')' '{' LdeclBlock body '}' {
 
         curr_function_type = $1;
 
-        // tree_visual_printTree($7);
+        tree_visual_printTree($7);
+        export_ast_to_graphviz($7,"Main");
 
         fprintf(fptr, "MAIN:");
 
@@ -332,7 +346,7 @@ MainBlock : Type MAIN '(' ')' '{' LdeclBlock body '}' {
         fprintf(fptr, "PUSH R%d\n", p);
         fprintf(fptr, "MOV BP, SP\n");
 
-        int curr_offset = get_curr_offset(curr_lsymbol_table);
+        int curr_offset = get_ltable_length(curr_lsymbol_table);
 
         if(curr_offset!=0)fprintf(fptr, "ADD SP, %d\n", curr_offset);
 
@@ -398,20 +412,10 @@ InputStmt   : READ '(' ID  ')' ';' {
                 tnode* temp = createTree(0, TYPE_PTR, "*", PTRNODE, entry,$4, NULL,NULL);
                 $$ = createTree(0, TYPE_NULL, "Read", READNODE,NULL,temp, NULL, NULL);
             }
-            | READ '(' ID '.' ID ')' ';' {
-                Gsymbol* ptr1 = find_gsymbol($3->varname);
-                Lsymbol* ptr2 = find_lsymbol($3->varname);
-                int type = get_type(ptr1,ptr2,$3->varname);
-                check_data_types(type,TYPE_TUPLE,TYPE_TUPLE,397);
-                int varType = get_var_type(ptr1,ptr2,$3->varname);
-                if(varType == TYPE_PTR){
-                    printf("Error: %s is of pointer type, use -> operator to access its attributes\n", $3->varname);
-                    exit(0);
-                }
-                TypeTable* typet = get_typetable(ptr1,ptr2,$3->varname);
-                tnode* dot = createTree(0,typetable_lookup_id_type(typet,$5->varname),".",DOTNODE,NULL,$3,NULL,$5);
-                $$ = createTree(0,typetable_lookup_id_type(typet,$5->varname),"Read",READNODE,NULL,dot,NULL,NULL);
-                dot->typeEntry = typet;
+            | READ '(' Field ')' ';' {
+                int type = $3->type;
+                TypeTable* typet = $3->typeEntry;
+                $$ = createTree(0,$3->type,"Read",READNODE,NULL,$3,NULL,NULL);
             }
             | READ '(' ID ARROW ID ')' ';' {
                 Gsymbol* ptr1 = find_gsymbol($3->varname);
@@ -429,7 +433,6 @@ InputStmt   : READ '(' ID  ')' ';' {
                 arrow->typeEntry = typet;
             }
             ;
-            ;
 
 OutputStmt  : WRITE '(' E ')' ';' {
                 $1->left = $3;
@@ -438,33 +441,37 @@ OutputStmt  : WRITE '(' E ')' ';' {
             ;
 
 AsgStmt : ID '=' E ';' {
-            Gsymbol* ptr1 = find_gsymbol($1->varname);
-            Lsymbol* ptr2 = find_lsymbol($1->varname);
-            int varType = get_var_type(ptr1,ptr2,$1->varname);
-            if(varType != TYPE_VAR && varType != TYPE_PTR){
-                printf("Error: %s is not of variable type\n",$1->varname);
-                printf("%s\n",type_to_string(varType));
-                exit(1);
-            }
-            TypeTable* type = NULL;
-            if(ptr2){
-                printf("typee-->%s\n",ptr2->name);
-                check_data_types(ptr2->type,$3->type,ptr2->type,409);
-                type = ptr2->typeEntry;
-            }else if(ptr1){
-                check_data_types(ptr1->type,$3->type,ptr1->type,412);
-                type = ptr1->typeEntry;
+
+            if($3->nodetype != NULLNODE){
+                Gsymbol* ptr1 = find_gsymbol($1->varname);
+                Lsymbol* ptr2 = find_lsymbol($1->varname);
+                int varType = get_var_type(ptr1,ptr2,$1->varname);
+                if(varType != TYPE_VAR && varType != TYPE_PTR){
+                    printf("Error: %s is not of variable type\n",$1->varname);
+                    printf("%s\n",type_to_string(varType));
+                    exit(1);
+                }
+                TypeTable* type = NULL;
+                if(ptr2){
+                    check_data_types(ptr2->type,$3->type,ptr2->type,409);
+                    type = ptr2->typeEntry;
+                }else if(ptr1){
+                    check_data_types(ptr1->type,$3->type,ptr1->type,412);
+                    type = ptr1->typeEntry;
+                }else{
+                    printf("Error: Variable %s Not Declared 462\n", $1->varname);
+                    exit(0);
+                }
+                if(type->type != $3->type && type != $3->typeEntry){
+                    char* returnType = $3->typeEntry->name;
+                    char* returningType = type->name;
+                    printf("Error: Assignment with different data types, LHS => %s and RHS => %s\n", returningType, returnType);
+                    exit(1);
+                }
+                $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,NULL,$1, NULL, $3);
             }else{
-                printf("Error: Variable %s Not Declared\n", $1->varname);
-                exit(0);
+                $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,NULL, $1, NULL, $3);
             }
-            if(type != $3->typeEntry){
-                char* returnType = $3->typeEntry->name;
-                char* returningType = type->name;
-                printf("Error: Assignment with different data types, LHS => %s and RHS => %s\n", returningType, returnType);
-		        exit(1);
-            }
-            $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,$1, NULL, $3);
         }
         | ID DimAccess '=' E ';'{
             Gsymbol* temp = find_gsymbol($1->varname);
@@ -491,37 +498,25 @@ AsgStmt : ID '=' E ';' {
             }else if(ptr1){
                 check_data_types(ptr1->type,$4->type,ptr1->type,449);
             }else{
-                printf("Error: Variable %s Not Declared\n", $2->varname);
+                printf("Error: Variable %s Not Declared 498\n", $2->varname);
                 exit(0);
             }
             tnode* t = createTree(0,TYPE_PTR, "*", PTRNODE, NULL,$2, NULL, NULL);
             $$ = createTree(0,TYPE_PTR, "=", ASSIGNMENT,NULL,t, NULL, $4);
         }
-        | ID '.' ID '=' E ';' {
-            Gsymbol* ptr1 = find_gsymbol($1->varname);
-            Lsymbol* ptr2 = find_lsymbol($1->varname);
-            TypeTable* type = NULL;
-            if(ptr2){
-                type = ptr2->typeEntry;
-            }else if(ptr1){
-                type = ptr1->typeEntry;
-            }else{
-                printf("Error: Variable %s Not Declared\n", $1->varname);
-                exit(0);
+        | Field '=' E ';' {
+            if($3->nodetype != NULLNODE){
+                if($1->type != $3->type){
+                    printf("Error: Assignment with different data types %s and %s\n", type_to_string($1->type), type_to_string($3->type));
+                    exit(0);
+                    
+                }
+                $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,NULL,$1, NULL, $3);
+                $$->typeEntry = $1->typeEntry;
+            }else {
+                $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,NULL,$1, NULL, $3);
+                $$->typeEntry = $1->typeEntry;
             }
-            if(type->type != TYPE_TUPLE){
-                printf("Error: Variable %s is not of tuple type\n", $1->varname);
-                exit(0);
-            }
-
-            if(typetable_lookup_id_type(type,$3->varname) != $5->type){
-                printf("Error: Variable %s Not Declared in the tuple definition\n", $3->varname);
-                exit(0);
-                
-            }
-            tnode* dot = createTree(0,typetable_lookup_id_type(type,$3->varname),".",DOTNODE,NULL,$1,NULL,$3);
-            $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,dot, NULL, $5);
-            $$->typeEntry = type;
         }
         | ID ARROW ID '=' E ';' {
             Gsymbol* ptr1 = find_gsymbol($1->varname);
@@ -532,7 +527,7 @@ AsgStmt : ID '=' E ';' {
             }else if(ptr1){
                 type = ptr1->typeEntry;
             }else{
-                printf("Error: Variable %s Not Declared\n", $1->varname);
+                printf("Error: Variable %s Not Declared 539\n", $1->varname);
                 exit(0);
             }
             if(type->type != TYPE_TUPLE){
@@ -553,7 +548,65 @@ AsgStmt : ID '=' E ';' {
             $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,arrow, NULL, $5);
             $$->typeEntry = type;
         }
+        
         ;
+
+Allocstmnt : ID '=' ALLOC'(' ')' ';' {
+                Gsymbol* ptr1 = find_gsymbol($1->varname);
+                Lsymbol* ptr2 = find_lsymbol($1->varname);
+
+                TypeTable* type = get_typetable(ptr1,ptr2,$1->varname);
+
+                check_data_types(type->type,type->type,TYPE_TUPLE,559);
+
+                tnode* temp = createTree(type->size, TYPE_NULL, "Alloc", ALLOCNODE,NULL,$1, NULL, NULL);
+
+                temp->typeEntry = type;
+
+                $$ = temp;
+            }
+          | Field '=' ALLOC'(' ')' ';' {
+
+                if($1->typeEntry->type != TYPE_TUPLE){
+                    printf("Error: Piecewise allocation not possible %s\n", $1->right->varname);
+                    exit(0);
+                }
+
+                tnode* temp = createTree($1->typeEntry->size, TYPE_NULL, "Alloc", ALLOCNODE,NULL,$1, NULL, NULL);
+
+                $$ = temp;
+          }
+          | FREE '(' ID ')' ';' {
+                Gsymbol* ptr1 = find_gsymbol($3->varname);
+                Lsymbol* ptr2 = find_lsymbol($3->varname);
+
+                TypeTable* type = get_typetable(ptr1,ptr2,$3->varname);
+
+                check_data_types(type->type,type->type,TYPE_TUPLE,559);
+
+                tnode* temp = createTree(type->size, TYPE_NULL, "free", FREENODE,NULL,$3, NULL, NULL);
+
+                temp->typeEntry = type;
+
+                $$ = temp;
+          }
+          | FREE '(' Field ')' ';' {
+
+                if($3->typeEntry->type != TYPE_TUPLE){
+                    printf("Error: Piecewise deallocation not possible %s\n", $3->right->varname);
+                    exit(0);
+                }
+
+                tnode* temp = createTree($3->typeEntry->size, TYPE_NULL, "free", FREENODE,NULL,$3, NULL, NULL);
+
+                $$ = temp;
+          }
+          | INITIALIZE '('')'';' {
+            tnode* temp = createTree(0, TYPE_NULL, "initalize", INITIALIZENODE,NULL,NULL, NULL, NULL);
+            $$ = temp;
+          }
+          ;
+
 
 Stmt    : InputStmt         { $$ = $1; }
         | OutputStmt        { $$ = $1; }
@@ -564,6 +617,7 @@ Stmt    : InputStmt         { $$ = $1; }
         | RepeatUntiltstmt  { $$ = $1; }
         | Jumpstmt          { $$ = $1; }
         | Debugstmt         { $$ = $1; }
+        | Allocstmnt        { $$ = $1; }
         ;
 
 Ifstmt  : IF '(' E ')' THEN Slist ELSE Slist ENDIF ';' {
@@ -656,11 +710,19 @@ E   : E PLUS E {
         $$ = createTree(0,TYPE_BOOL,"<=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E NE E {
-        check_data_types($1->type,$3->type,TYPE_INT,616);
+        if($1->type == TYPE_TUPLE && $3->nodetype == NULLNODE){
+
+        }else{
+            check_data_types($1->type,$3->type,TYPE_INT,616);
+        }
         $$ = createTree(0,TYPE_BOOL,"!=",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E EQ E {
-        check_data_types($1->type,$3->type,TYPE_INT,620);
+        if($1->type == TYPE_TUPLE && $3->nodetype == NULLNODE){
+                
+        }else{
+            check_data_types($1->type,$3->type,TYPE_INT,616);
+        }
         $$ = createTree(0,TYPE_BOOL,"==",EXPRESSION,NULL,$1,NULL,$3);
     }
     | E AND E {
@@ -671,19 +733,11 @@ E   : E PLUS E {
         check_data_types($1->type,$3->type,TYPE_BOOL,628);
         $$ = createTree(0,TYPE_BOOL,"||",OPERATOR,NULL,$1,NULL,$3);
     }
-    | ID '.' ID {
-        Gsymbol* ptr1 = find_gsymbol($1->varname);
-        Lsymbol* ptr2 = find_lsymbol($1->varname);
-        int type = get_type(ptr1,ptr2,$1->varname);
-        check_data_types(type,TYPE_TUPLE,TYPE_TUPLE,635);
-        int varType = get_var_type(ptr1,ptr2,$1->varname);
-        if(varType == TYPE_PTR){
-            printf("Error: %s is of pointer type, use -> operator to access its attributes\n", $1->varname);
-            exit(0);
-        }
-        TypeTable* typet = get_typetable(ptr1,ptr2,$1->varname);
-        $$ = createTree(0,typetable_lookup_id_type(typet,$3->varname),".",DOTNODE,NULL,$1,NULL,$3);
-        $$->typeEntry = typet;
+    | NILL {
+        $$ = $1;
+    }
+    | Field {
+        $$ = $1;
     }
     | ID ARROW ID {
         Gsymbol* ptr1 = find_gsymbol($1->varname);
@@ -712,11 +766,17 @@ E   : E PLUS E {
     }
     | ID '(' ArgList ')' {
         Gsymbol* ptr1 = find_gsymbol($1->varname);
+
         print_gsymbol_list(ptr1);
         if(!ptr1 || (ptr1->varType != TYPE_FUNCT && ptr1->varType != TYPE_FUNCT_PTR)){
             printf("Error: No function with name %s declared\n",$1->varname);
             exit(0);
         }
+        tnode* temp = $3;
+        // while(temp){
+        //     print_ast_node(temp);
+        //     temp = temp->middle;
+        // }
         paramlist_is_input_args_correct(ptr1->plist, $3);
         TypeTable* typet = get_typetable(ptr1,NULL,$1->varname);
         $$ = createTree(0,ptr1->type,"funtion()",FUNCTIONNODE,NULL,$1,NULL,$3);
@@ -727,7 +787,7 @@ E   : E PLUS E {
         Lsymbol* ptr2 = find_lsymbol($1->varname);
         
         int varType = get_var_type(ptr1,ptr2,$1->varname);
-        printf("%s is of %s\n",$1->varname, type_to_string(varType));
+        // printf("%s is of %s\n",$1->varname, type_to_string(varType));
         if(varType != TYPE_VAR && varType != TYPE_PTR){
             printf("Error: %s is not of variable type\n",$1->varname);
             exit(1);
@@ -805,6 +865,37 @@ DimAccess   : DimAccess '[' E ']' {
             }
             ;
 
+Field   : Field '.' ID {
+            int type = $1->type;
+            check_data_types(type,TYPE_TUPLE,TYPE_TUPLE,803);
+            TypeTable* typet = $1->typeEntry;
+            typetable_print(typet);
+            TypeTable* typet2 = typetable_lookup_id_typetable(typet,$3->varname);
+            $$ = createTree(0,typetable_lookup_id_type(typet,$3->varname),".",DOTNODE,NULL,$1,NULL,$3);
+            $$->typeEntry = typet2;
+            $3->typeEntry = typet2;
+            // printf("typeEntry %s 806\n", typet->name);
+        }
+        | ID '.' ID {
+            Gsymbol* ptr1 = find_gsymbol($1->varname);
+            Lsymbol* ptr2 = find_lsymbol($1->varname);
+            int type = get_type(ptr1,ptr2,$1->varname);
+            check_data_types(type,TYPE_TUPLE,TYPE_TUPLE,803);
+            int varType = get_var_type(ptr1,ptr2,$1->varname);
+            if(varType == TYPE_PTR){
+                printf("Error: %s is of pointer type, use -> operator to access its attributes\n", $1->varname);
+                exit(0);
+            }
+            TypeTable* typet = get_typetable(ptr1,ptr2,$1->varname);
+            TypeTable* typet2 = typetable_lookup_id_typetable(typet,$3->varname);
+            $$ = createTree(0,typetable_lookup_id_type(typet,$3->varname),"dot",DOTNODE,NULL,$1,NULL,$3);
+            $$->typeEntry = typet2;
+            $1->typeEntry = typet;
+         }
+        ;
+
+
+
 %%
 
 
@@ -832,14 +923,16 @@ void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType fu
     fprintf(fptr, "PUSH R%d\n", p);
     fprintf(fptr, "MOV BP, SP\n");
     
-    int param_list_size = paramlist_get_size($4);
+    int param_list_size = get_paramlist_length($4);
 
     //setting up the argument values into the respective addresses in the from the local symbol table
     int count = param_list_size;
-    int returnSize = curr_function_type->size;
+    int returnSize = 1;
     if(functionType == TYPE_FUNCT_PTR){
         returnSize = 1;
     }
+    /* fprintf(fptr, "BRKP\n");
+    fprintf(fptr, "BRKP\n"); */
     while(count--){
         fprintf(fptr, "MOV R%d, SP\n", p);
         fprintf(fptr, "SUB R%d, %d\n", p, param_list_size + 2 + returnSize - 1); //here the 3 is the RETURN VALUE, RETURN ADDRESS, OLD BP and the -1 for preventing the overreduction as subtracting curr_offset u reach the OLD BP 
@@ -848,8 +941,10 @@ void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType fu
         fprintf(fptr, "PUSH R%d\n", p);
     }
 
+    /* fprintf(fptr, "BRKP\n"); */
+
     // This is to set up space for the locally declared variables in the function
-    int curr_offset = get_curr_offset(curr_lsymbol_table) - param_list_size;
+    int curr_offset = get_ltable_length(curr_lsymbol_table) - param_list_size;
 
     fprintf(fptr, "MOV R%d, \"SPACE\"\n", p);
     for(int i=0;i<curr_offset;i++){
@@ -858,7 +953,9 @@ void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType fu
 
     freeReg();
 
-    /* tree_visual_printTree($8); */
+    export_ast_to_graphviz($8,$2->varname);
+
+    tree_visual_printTree($8);
 
     Lsymbol* temp1 = curr_lsymbol_table;
 
@@ -886,14 +983,18 @@ void yyerror(char* s){
 
 
 
-int main() {
+int main(int argc, char *argv[]) {
     
-    yyin = fopen("a.txt", "r");
-    fptr = fopen("a.xsm", "w");
+
+    yyin = fopen(argv[1], "r");
+    fptr = fopen("machinecode.xsm", "w");
     typetable_create("int", TYPE_INT,  NULL);
     typetable_create("str", TYPE_STRING, NULL);
+    typetable_create("bool", TYPE_BOOL, NULL);
+    typetable_create("void", TYPE_VOID, NULL);
     make_header(fptr);
     yyparse();
+    
     print_gsymbol_table();
     exit_footer(fptr);
     create_label_with_message(fptr,101,"IndexOutOfBounds");

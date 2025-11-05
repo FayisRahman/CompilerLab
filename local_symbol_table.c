@@ -84,7 +84,7 @@ Lsymbol* append_lsymbol_id_list(Lsymbol *list, Lsymbol *id){
     Lsymbol *temp = list;
     while (temp->next) temp = temp->next;
     printf("name: %s, binding: %d, size: %d\n",temp->name,temp->binding,temp->size);
-    id->binding = temp->binding + temp->size;
+    id->binding = temp->binding + 1;
     temp->next = id;
     id->next = NULL;
     return list;
@@ -107,6 +107,17 @@ int get_curr_offset(Lsymbol* head){
     return ans;
 }
 
+int get_ltable_length(Lsymbol* head){
+    int ans = 0;
+    Lsymbol* temp = head;
+    while(temp){
+        ans ++;
+        // printf("%s->",temp->name);
+        temp = temp->next;
+    }
+    return ans;
+}
+
 void lst_destroy(Lsymbol* head){
 
     if(!head)return;
@@ -121,7 +132,7 @@ Lsymbol* lst_set_bindings(Lsymbol* head){
     Lsymbol* temp = head;
     while(temp){
         temp->binding = binding;
-        binding += temp->size;
+        binding += 1;
         temp = temp->next;
     }
     return head;
@@ -196,7 +207,7 @@ int get_var_type(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     }else if(gentry){
         return gentry->varType;
     }else{
-        printf("Error: Variable %s not declared\n",varname);
+        printf("Error: Variable %s not declared lst199\n",varname);
         // print_call_stack();
         exit(1);
     }
@@ -208,7 +219,7 @@ int get_type(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     }else if(gentry){
         return gentry->type;
     }else{
-        printf("Error: Variable %s not declared\n",varname);
+        printf("Error: Variable %s not declared lst211\n",varname);
         
         exit(0);
     }
@@ -219,7 +230,7 @@ DimNode* get_dimlist(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     if(gentry){
         return gentry->dimlist;
     }else{
-        printf("Error: Variable %s not declared\n",varname);
+        printf("Error: Variable %s not declared lst222\n",varname);
         exit(0);
     }
 }
@@ -234,7 +245,7 @@ int get_binding(Gsymbol* gentry, Lsymbol* lentry,char* varname,FILE* fptr, int r
         fprintf(fptr, "MOV R%d, %d\n", regNo, gentry->binding);
         return regNo;
     }else{
-        printf("Error: Variable %s not declared\n",varname);
+        printf("Error: Variable %s not declared lst237\n",varname);
         exit(0);
     }
 }
@@ -245,7 +256,7 @@ TypeTable* get_typetable(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     }else if(gentry){
         return gentry->typeEntry;
     }else{
-        printf("Error: Variable %s not declared\n",varname);
+        printf("Error: Variable %s not declared lst248\n",varname);
         exit(0);
     }
 }

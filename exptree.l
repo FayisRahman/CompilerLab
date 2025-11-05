@@ -48,6 +48,21 @@
 "tuple" { return TUPLE;}
 "type" { return TYPE; }
 "endtype" { return ENDTYPE;}
+"struct" {return STRUCT;}
+"free" {return FREE;}
+"Free" {return FREE;}
+"Alloc" {return ALLOC;}
+"alloc" {return ALLOC;}
+"initialize" {return INITIALIZE;}
+"null" {
+    yylval.node = createTree(0, TYPE_INT, strdup(yytext), NULLNODE,NULL, NULL, NULL,NULL);
+    return NILL;
+}
+
+"NULL" {
+    yylval.node = createTree(0, TYPE_INT, strdup(yytext), NULLNODE,NULL, NULL, NULL,NULL);
+    return NILL;
+}
 
 
 [a-zA-Z][a-zA-Z0-9]* {

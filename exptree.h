@@ -21,7 +21,11 @@ typedef enum NodeType {
     RETURNNODE,         // 16
     BREAKPOINTNODE,     // 17
     DOTNODE,            // 18
-    ARROWNODE,            // 19
+    ARROWNODE,          // 19
+    ALLOCNODE,          // 20
+    FREENODE,           // 21
+    INITIALIZENODE,     // 22
+    NULLNODE,           // 23
 } NodeType;
 
 typedef enum DataType {
@@ -36,6 +40,7 @@ typedef enum DataType {
     TYPE_FUNCT,     // 8
     TYPE_FUNCT_PTR, // 9
     TYPE_TUPLE,     // 10
+    TYPE_VOID,      // 11
 } DataType;
 
 

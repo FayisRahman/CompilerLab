@@ -48,7 +48,7 @@ int yywrap(){
 }
 
 int translate(){
-    FILE* fptr = fopen("../a.xsm", "r");
+    FILE* fptr = fopen("../machinecode.xsm", "r");
     yyin = fptr;
     if (!yyin) {
         perror("input file");
@@ -68,7 +68,7 @@ int translate(){
     fclose(out);
     fclose(fptr);
 
-    rename("temp.xsm", "../a.xsm");
+    rename("temp.xsm", "../machinecode.xsm");
 }
 
 int main() {

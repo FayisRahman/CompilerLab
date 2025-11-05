@@ -5,6 +5,8 @@
 #include "AST.h"
 #include "exptree.h"
 
+#define MAX_MEMBER_FIELDS 8
+
 struct ParamList;
 
 /*
@@ -33,4 +35,5 @@ void typetable_print(const TypeTable* head);
 DataType typetable_lookup_id_type(const TypeTable* entry, const char* name);
 int typetable_lookup_id_offset(const TypeTable* entry, const char* name);
 void typetable_append_plist(const char* name, struct ParamList* plist);
+TypeTable* typetable_lookup_id_typetable(const TypeTable* entry, const char* name);
 #endif

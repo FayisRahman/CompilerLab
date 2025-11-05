@@ -94,6 +94,49 @@ void ast_destroy(struct tnode* head){
 
 }
 
+void print_ast_node(tnode* node) {
+    if (!node) {
+        printf("NULL node\n");
+        return;
+    }
+
+    printf("======= AST NODE =======\n");
+    printf("Address     : %p\n", (void*)node);
+    printf("NodeType    : %s (%d)\n", nodetype_to_string(node->nodetype), node->nodetype);
+    printf("VarName     : %s\n", node->varname ? node->varname : "(none)");
+    printf("Type        : %s (%d)\n", type_to_string(node->type), node->type);
+
+    if (node->type == TYPE_INT)
+        printf("Value       : %d\n", node->val);
+
+    if (node->dimlist) {
+        printf("DimList     : ");
+        print_dimlist(node->dimlist);
+        printf("\n");
+    }
+
+    if (node->plist) {
+        printf("ParamList   : ");
+        print_paramlist(node->plist);
+        printf("\n");
+    }
+
+    if (node->typeEntry)
+        printf("TypeEntry   : %s\n", node->typeEntry->name);
+    
+    if (node->Gentry) {
+        printf("GSymbol     : ");
+        print_gsymbol(node->Gentry);
+        printf("\n");
+    }
+
+    printf("Left ptr    : %p\n", (void*)node->left);
+    printf("Middle ptr  : %p\n", (void*)node->middle);
+    printf("Right ptr   : %p\n", (void*)node->right);
+
+    printf("========================\n\n");
+}
+
 
 const char* nodetype_to_string(int nodetype) {
     switch (nodetype) {
@@ -117,6 +160,10 @@ const char* nodetype_to_string(int nodetype) {
         case BREAKPOINTNODE: return "BREAKPOINT";
         case DOTNODE: return "DOT";
         case ARROWNODE: return "ARROW";
+        case ALLOCNODE: return "ALLOC";
+        case FREENODE: return "FREE";
+        case NULLNODE: return "NULL";
+        case INITIALIZENODE: return "INIT";
         default: return "UNKNOWN_NODE";
     }
 }
@@ -134,8 +181,40 @@ const char* type_to_string(int type) {
         case TYPE_FUNCT: return "FUNCTION";
         case TYPE_FUNCT_PTR: return "PTRFUNCT";
         case TYPE_TUPLE: return "TUPLE";
+        case TYPE_VOID: return "VOID"; 
         default: return "UNKNOWN_TYPE";
     }
 }
 
+/*---------------------------------------------------------
+ * Helpers to print DimList, ParamList, and Gsymbol details
+ *--------------------------------------------------------*/
+void print_dimlist(DimNode* dimlist) {
+    printf("Dims:[");
+    while (dimlist) {
+        printf("%d ", dimlist->size);
+        dimlist = dimlist->next;
+    }
+    printf("] ");
+}
+
+void print_paramlist(ParamList* plist) {
+    printf("Params:[");
+    while (plist) {
+        printf("%s:%s ", plist->name, type_to_string(plist->type));
+        plist = plist->next;
+    }
+    printf("] ");
+}
+
+void print_gsymbol(Gsymbol* g) {
+    if (!g) return;
+    printf("Gentry:{name:%s type:%s varType:%d size:%d bind:%d flabel:%d} ",
+           g->name,
+           type_to_string(g->type),
+           g->varType,
+           g->size,
+           g->binding,
+           g->flabel);
+}
 

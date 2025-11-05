@@ -2,37 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-/*---------------------------------------------------------
- * Helpers to print DimList, ParamList, and Gsymbol details
- *--------------------------------------------------------*/
-void print_dimlist(DimNode* dimlist) {
-    printf("Dims:[");
-    while (dimlist) {
-        printf("%d ", dimlist->size);
-        dimlist = dimlist->next;
-    }
-    printf("] ");
-}
 
-void print_paramlist(ParamList* plist) {
-    printf("Params:[");
-    while (plist) {
-        printf("%s:%s ", plist->name, type_to_string(plist->type));
-        plist = plist->next;
-    }
-    printf("] ");
-}
-
-void print_gsymbol(Gsymbol* g) {
-    if (!g) return;
-    printf("Gentry:{name:%s type:%s varType:%d size:%d bind:%d flabel:%d} ",
-           g->name,
-           type_to_string(g->type),
-           g->varType,
-           g->size,
-           g->binding,
-           g->flabel);
-}
 
 /*---------------------------------------------------------
  * Prints a single node's core info
@@ -52,10 +22,10 @@ void print_node_info(tnode* root) {
     if (root->type == TYPE_INT)
         printf("val:%d ", root->val);
 
-    if (root->dimlist)
-        print_dimlist(root->dimlist);
-    if (root->plist)
-        print_paramlist(root->plist);
+    // if (root->dimlist)
+    //     print_dimlist(root->dimlist);
+    // if (root->plist)
+    //     print_paramlist(root->plist);
     if (root->Gentry)
         print_gsymbol(root->Gentry);
 
@@ -88,6 +58,25 @@ void print_field_access_node(tnode* root, char* new_prefix, const char* left_lab
                right_label,
                root->right->varname ? root->right->varname : "(unnamed)",
                root->right->typeEntry ? root->right->typeEntry->name : type_to_string(root->right->type));
+    }
+}
+
+/*---------------------------------------------------------
+ * Recursive helper to print a full chain of DOTNODEs like a.b.c.d
+ *--------------------------------------------------------*/
+void print_dotnode_chain(tnode* node) {
+    if (!node) return;
+
+    if (node->nodetype == DOTNODE) {
+        print_dotnode_chain(node->left);
+        if (node->right && node->right->varname)
+            printf(".%s", node->right->varname);
+        else
+            printf(".(unknown)");
+    } else if (node->varname) {
+        printf("%s", node->varname);
+    } else {
+        printf("(unnamed)");
     }
 }
 
@@ -154,9 +143,18 @@ void tree_visual_print_tree_structure(tnode *root, char *prefix, int is_last, in
      * Special handling: DOTNODE or ARROWNODE
      *--------------------------------------------*/
     if (root->nodetype == DOTNODE) {
-        print_field_access_node(root, new_prefix, "VAR", "FIELD");
+        // First line: same structure as other nodes
+        printf("%s%s", prefix, is_last ? "└── " : "├── ");
+        printf("[DOT] operator:'.' type:%s val:%d\n",
+            type_to_string(root->type), root->val);
+
+        // Second line: indented continuation with the full chain
+        printf("%s%sFull Access: ", prefix, is_last ? "    " : "│   ");
+        print_dotnode_chain(root);
+        printf("\n");
         return;
     }
+
 
     if (root->nodetype == ARROWNODE) {
         print_field_access_node(root, new_prefix, "PTR", "FIELD");
@@ -220,9 +218,9 @@ void tree_visual_print_tree_compact(tnode *root, int depth) {
     printf("|- [%s]", nodetype_to_string(root->nodetype));
 
     if (root->nodetype == DOTNODE) {
-        printf(" (DOTNODE '.')");
-        if (root->left && root->right)
-            printf(" [%s.%s]", root->left->varname, root->right->varname);
+        printf(" (DOTNODE '.') ");
+        printf("Access: ");
+        print_dotnode_chain(root);
     } else if (root->nodetype == ARROWNODE) {
         printf(" (ARROWNODE '->')");
         if (root->left && root->right)

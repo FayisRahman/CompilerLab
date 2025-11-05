@@ -55,42 +55,47 @@ extern int yydebug;
     STR = 261,
     ID = 262,
     NUM = 263,
-    STRING = 264,
-    begin = 265,
-    end = 266,
-    MAIN = 267,
-    DECL = 268,
-    ENDDECL = 269,
-    TYPE = 270,
-    ENDTYPE = 271,
-    TUPLE = 272,
-    PLUS = 273,
-    MINUS = 274,
-    DIV = 275,
-    MUL = 276,
-    ARROW = 277,
-    IF = 278,
-    THEN = 279,
-    ELSE = 280,
-    ENDIF = 281,
-    WHILE = 282,
-    DO = 283,
-    ENDWHILE = 284,
-    REPEAT = 285,
-    UNTIL = 286,
-    CONTINUE = 287,
-    BREAK = 288,
-    RETURN = 289,
-    BREAKPOINT = 290,
-    GT = 291,
-    GE = 292,
-    LT = 293,
-    LE = 294,
-    NE = 295,
-    EQ = 296,
-    AND = 297,
-    OR = 298,
-    MOD = 299
+    NILL = 264,
+    STRING = 265,
+    begin = 266,
+    end = 267,
+    MAIN = 268,
+    DECL = 269,
+    ENDDECL = 270,
+    TYPE = 271,
+    ENDTYPE = 272,
+    TUPLE = 273,
+    STRUCT = 274,
+    PLUS = 275,
+    MINUS = 276,
+    DIV = 277,
+    MUL = 278,
+    ARROW = 279,
+    IF = 280,
+    THEN = 281,
+    ELSE = 282,
+    ENDIF = 283,
+    WHILE = 284,
+    DO = 285,
+    ENDWHILE = 286,
+    REPEAT = 287,
+    UNTIL = 288,
+    CONTINUE = 289,
+    BREAK = 290,
+    RETURN = 291,
+    BREAKPOINT = 292,
+    FREE = 293,
+    ALLOC = 294,
+    INITIALIZE = 295,
+    GT = 296,
+    GE = 297,
+    LT = 298,
+    LE = 299,
+    NE = 300,
+    EQ = 301,
+    AND = 302,
+    OR = 303,
+    MOD = 304
   };
 #endif
 /* Tokens.  */
@@ -100,48 +105,53 @@ extern int yydebug;
 #define STR 261
 #define ID 262
 #define NUM 263
-#define STRING 264
-#define begin 265
-#define end 266
-#define MAIN 267
-#define DECL 268
-#define ENDDECL 269
-#define TYPE 270
-#define ENDTYPE 271
-#define TUPLE 272
-#define PLUS 273
-#define MINUS 274
-#define DIV 275
-#define MUL 276
-#define ARROW 277
-#define IF 278
-#define THEN 279
-#define ELSE 280
-#define ENDIF 281
-#define WHILE 282
-#define DO 283
-#define ENDWHILE 284
-#define REPEAT 285
-#define UNTIL 286
-#define CONTINUE 287
-#define BREAK 288
-#define RETURN 289
-#define BREAKPOINT 290
-#define GT 291
-#define GE 292
-#define LT 293
-#define LE 294
-#define NE 295
-#define EQ 296
-#define AND 297
-#define OR 298
-#define MOD 299
+#define NILL 264
+#define STRING 265
+#define begin 266
+#define end 267
+#define MAIN 268
+#define DECL 269
+#define ENDDECL 270
+#define TYPE 271
+#define ENDTYPE 272
+#define TUPLE 273
+#define STRUCT 274
+#define PLUS 275
+#define MINUS 276
+#define DIV 277
+#define MUL 278
+#define ARROW 279
+#define IF 280
+#define THEN 281
+#define ELSE 282
+#define ENDIF 283
+#define WHILE 284
+#define DO 285
+#define ENDWHILE 286
+#define REPEAT 287
+#define UNTIL 288
+#define CONTINUE 289
+#define BREAK 290
+#define RETURN 291
+#define BREAKPOINT 292
+#define FREE 293
+#define ALLOC 294
+#define INITIALIZE 295
+#define GT 296
+#define GE 297
+#define LT 298
+#define LE 299
+#define NE 300
+#define EQ 301
+#define AND 302
+#define OR 303
+#define MOD 304
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 25 "exptree.y"
+#line 26 "exptree.y"
 
     struct tnode* node;
     char* string;
@@ -152,7 +162,7 @@ union YYSTYPE
     struct ParamList* plist;
     struct TypeTable* type;
 
-#line 156 "y.tab.h"
+#line 166 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

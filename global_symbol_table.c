@@ -17,7 +17,7 @@ void add_gsymbol(Gsymbol *id, int type) {
     }
     id->type = type;
     id->binding = curr_stack_address + 1;
-    curr_stack_address += id->size;
+    curr_stack_address += (id->varType == TYPE_ARR) ? get_size(id->dimlist) : 1;
 
     if(curr_stack_address > 5119){
         printf("Error: Memory Overflow\n");

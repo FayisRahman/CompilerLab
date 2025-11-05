@@ -59,6 +59,10 @@ void typetable_append_plist(const char* name, ParamList* plist){
     TypeTable* temp = typetable_lookup(name);
     if(plist) temp->plist = paramlist_deepcopy(plist);
     if(plist) temp->size = get_paramlist_length((ParamList*) plist);
+    if(plist && temp->size > MAX_MEMBER_FIELDS){
+        printf("Error: too many member fields for the struct %s, Max 8 fields are allowed\n", name);
+        exit(0);
+    }
 }
 
 void typetable_destroy() {
@@ -129,12 +133,14 @@ DataType typetable_lookup_id_type(const TypeTable* entry, const char* name){
     }
 
     printf("Error: No %s present in the tuple definition\n",name);
+    exit(0);
 
 
 }
 
 int typetable_lookup_id_offset(const TypeTable* entry, const char* name){
 
+    // printf("name of TypeEntry %s\n",name);
     ParamList* plist = entry->plist;
     int count = 0;
 
@@ -145,6 +151,23 @@ int typetable_lookup_id_offset(const TypeTable* entry, const char* name){
     }
 
     printf("Error: No %s present in the tuple definition\n",name);
+    exit(0);
+
+}
+
+TypeTable* typetable_lookup_id_typetable(const TypeTable* entry, const char* name){
+
+    // printf("name of TypeEntry %s\n",name);
+    ParamList* plist = entry->plist;
+    int count = 0;
+
+    while(plist){
+        if(strcmp(plist->name,name) == 0)return plist->typeEntry;
+        plist = plist->next;
+    }
+
+    printf("Error: No %s present in the tuple definition\n",name);
+    exit(0);
 
 }
 

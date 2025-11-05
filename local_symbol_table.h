@@ -55,6 +55,8 @@ int get_ltype(Lsymbol* entry);
 //here i am finding the sum of all the size of the variables declared in the lsymbol table 
 int get_curr_offset(Lsymbol* head);
 
+int get_ltable_length(Lsymbol* head);
+
 
 //free the local symbol table of the function
 void lst_destroy(Lsymbol* head);

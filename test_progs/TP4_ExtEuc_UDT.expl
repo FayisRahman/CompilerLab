@@ -5,21 +5,18 @@ type
     int s;
     int t;
   };
-  struct List{
-    int data;
-    List next;
-  };
 endtype
+
 decl
-  List list[10];
   node y,z,gcd(int a,int b);
-  
 enddecl
+
 node gcd(int a,int b)
 {
   decl
     int q,r,temp;
   enddecl
+
   begin
     if(b==0) then
       y.d = a;
@@ -33,25 +30,27 @@ node gcd(int a,int b)
       y.s = z.t;
       y.t = temp - (q*z.t);
     endif;
+
   return y;
   end
 }
+
 int main()
 {
   decl
     node res;
     int a,b,c;
-    List l1,l2;
   enddecl
 
   begin
     initialize();
-    l1 = Alloc();
-    l1.data = 10;
-    list[0] = l1;
-    l2 = list[0];
-    write(l2.data);
-    
+    y = alloc();
+    read(a);
+    read(b);
+    res = gcd(a,b);
+    write(res.d);
+    write(res.s);
+    write(res.t);
 
   return 0;
   end

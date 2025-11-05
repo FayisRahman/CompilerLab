@@ -1,6 +1,9 @@
 #!/bin/bash
 
-./sol.out
+
+./sol.out $1
+
 cd label_translation
 ./label.sh
 cd ..
+./xsm -l library.lib -e machinecode.xsm

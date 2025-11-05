@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "global_symbol_table.h"
+#include "dim_node.h"
 #include "param_list.h"
 #include "type_table.h"
 #include "exptree.h"
@@ -42,8 +43,14 @@ void ast_destroy(struct tnode* head);
 //to check that during operations and assignments the data types are correct
 void check_data_types(int t,int q,int type,int line);
 
+void print_ast_node(struct tnode* head);
+
 const char* nodetype_to_string(int nodetype);
 const char* type_to_string(int type);
+
+void print_gsymbol(struct Gsymbol* g);
+void print_paramlist(struct ParamList* plist);
+void print_dimlist(struct DimNode* dimlist);
 
 
 
