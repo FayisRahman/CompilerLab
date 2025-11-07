@@ -20,6 +20,7 @@
     struct tnode* head = NULL;
     FILE* fptr = NULL;
     void function_block(DataType $1, tnode* $2,ParamList* $4, tnode* $8, DataType functionType);
+    Classtable* Cptr = NULL;
     
 %}
 
@@ -35,7 +36,7 @@
 }
 %token<node> WRITE READ INT STR ID NUM NILL
 %token<string>  STRING
-%token begin end MAIN DECL ENDDECL TYPE ENDTYPE TUPLE STRUCT
+%token begin end MAIN DECL ENDDECL TYPE ENDTYPE TUPLE STRUCT CLASS ENDCLASS EXTENDS SELF NEW DELETE
 %token PLUS MINUS DIV MUL ARROW
 %token IF THEN ELSE ENDIF WHILE DO ENDWHILE REPEAT UNTIL CONTINUE BREAK RETURN BREAKPOINT FREE ALLOC INITIALIZE 
 %token GT GE LT LE NE EQ AND OR
@@ -58,7 +59,7 @@
 %left MUL DIV MOD
 %%
 
-Program : TDeclBlock GDeclBlock FDefBlock MainBlock {}
+Program : TDeclBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {}
         | TDeclBlock GDeclBlock MainBlock {}
         | TDeclBlock MainBlock {}
         ;
@@ -184,13 +185,56 @@ TIdDecl     : Type ID {
                 $$->typeEntry = $1;
             }
 
+// ---------------------CLASS DEFINITION START-------------------------------------------------//
+
+ClassDefBlock   : CLASS ClassDefList ENDCLASS {}
+                | CLASS ENDCLASS {}
+                ;
+ClassDefList    : ClassDefList Classdef
+                | Classdef
+                ;
+
+Classdef        : Cname '{'DECL Fieldlists MethodDecl ENDDECL MethodDefns '}'
+                ;
+
+Cname           : ID        {Cptr = Cinstall($1->varname,NULL); curr_class_table = Cptr; }
+                | ID EXTENDS ID {Cptr = Cinstall($1->varname,$3->varname); curr_class_table = Cptr; }
+                ;
+
+Fieldlists      : Fieldlists Fld
+                |
+                ;
+
+Fld             : ID ID ';'  {Class_Finstall(Cptr,$1->varname,$2->varname);} //Installing the field to the class
+                ;
+
+MethodDecl      : MethodDecl MDecl
+                | MDecl
+                ;
+
+MDecl           : ID ID '(' Paramlist ')' ';' {Class_Minstall(Cptr,$2->Varname,typetable_lookup($1->varname),$4);}
+                                            //Installing the method to class
+                ;
+
+MethodDefns     : MethodDefns Fdef
+                | Fdef
+                ;
+
+
+FieldFunction   : SELF '.' ID '(' ArgList ')'
+                | ID '.' ID '(' ArgList ')'   //This will not occur inside a class.
+                | Field '.' ID '(' ArgList ')'
+                ;
+
+
+// ---------------------CLASS DEFINITION END---------------------------------------------------//
 // ------------------------------------------------------------------------//
 
 FDefBlock   : FDefBlock Fdef {} 
             | Fdef {}
             ;
 
-Fdef        :   Type ID '(' Paramlist ')' '{' LdeclBlock body '}' {    
+Fdef        : Type ID '(' Paramlist ')' '{' LdeclBlock body '}' {    
                 
                 function_block($1->type,$2,paramlist_deepcopy($4),$8,TYPE_FUNCT);
 
@@ -548,6 +592,9 @@ AsgStmt : ID '=' E ';' {
             $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,ptr1,arrow, NULL, $5);
             $$->typeEntry = type;
         }
+        |  ID '=' NEW '(' ID ')' ';'
+        | Field '=' NEW '(' ID ')' ';'
+        | DELETE '(' Field ')' ';'
         
         ;
 
@@ -739,6 +786,9 @@ E   : E PLUS E {
     | Field {
         $$ = $1;
     }
+    | FieldFunction {
+        $$ = $1;
+    }
     | ID ARROW ID {
         Gsymbol* ptr1 = find_gsymbol($1->varname);
         Lsymbol* ptr2 = find_lsymbol($1->varname);
@@ -892,6 +942,7 @@ Field   : Field '.' ID {
             $$->typeEntry = typet2;
             $1->typeEntry = typet;
          }
+        | SELF '.' ID {}
         ;
 
 

@@ -54,6 +54,11 @@
 "Alloc" {return ALLOC;}
 "alloc" {return ALLOC;}
 "initialize" {return INITIALIZE;}
+"class" {return CLASS;}
+"endclass" {return ENDCLASS;}
+"extends" {return EXTENDS;}
+"self" {return SELF;}
+"delete" {return DELETE;}
 "null" {
     yylval.node = createTree(0, TYPE_INT, strdup(yytext), NULLNODE,NULL, NULL, NULL,NULL);
     return NILL;

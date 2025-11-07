@@ -66,36 +66,39 @@ extern int yydebug;
     ENDTYPE = 272,
     TUPLE = 273,
     STRUCT = 274,
-    PLUS = 275,
-    MINUS = 276,
-    DIV = 277,
-    MUL = 278,
-    ARROW = 279,
-    IF = 280,
-    THEN = 281,
-    ELSE = 282,
-    ENDIF = 283,
-    WHILE = 284,
-    DO = 285,
-    ENDWHILE = 286,
-    REPEAT = 287,
-    UNTIL = 288,
-    CONTINUE = 289,
-    BREAK = 290,
-    RETURN = 291,
-    BREAKPOINT = 292,
-    FREE = 293,
-    ALLOC = 294,
-    INITIALIZE = 295,
-    GT = 296,
-    GE = 297,
-    LT = 298,
-    LE = 299,
-    NE = 300,
-    EQ = 301,
-    AND = 302,
-    OR = 303,
-    MOD = 304
+    CLASS = 275,
+    ENDCLASS = 276,
+    EXTENDS = 277,
+    PLUS = 278,
+    MINUS = 279,
+    DIV = 280,
+    MUL = 281,
+    ARROW = 282,
+    IF = 283,
+    THEN = 284,
+    ELSE = 285,
+    ENDIF = 286,
+    WHILE = 287,
+    DO = 288,
+    ENDWHILE = 289,
+    REPEAT = 290,
+    UNTIL = 291,
+    CONTINUE = 292,
+    BREAK = 293,
+    RETURN = 294,
+    BREAKPOINT = 295,
+    FREE = 296,
+    ALLOC = 297,
+    INITIALIZE = 298,
+    GT = 299,
+    GE = 300,
+    LT = 301,
+    LE = 302,
+    NE = 303,
+    EQ = 304,
+    AND = 305,
+    OR = 306,
+    MOD = 307
   };
 #endif
 /* Tokens.  */
@@ -116,36 +119,39 @@ extern int yydebug;
 #define ENDTYPE 272
 #define TUPLE 273
 #define STRUCT 274
-#define PLUS 275
-#define MINUS 276
-#define DIV 277
-#define MUL 278
-#define ARROW 279
-#define IF 280
-#define THEN 281
-#define ELSE 282
-#define ENDIF 283
-#define WHILE 284
-#define DO 285
-#define ENDWHILE 286
-#define REPEAT 287
-#define UNTIL 288
-#define CONTINUE 289
-#define BREAK 290
-#define RETURN 291
-#define BREAKPOINT 292
-#define FREE 293
-#define ALLOC 294
-#define INITIALIZE 295
-#define GT 296
-#define GE 297
-#define LT 298
-#define LE 299
-#define NE 300
-#define EQ 301
-#define AND 302
-#define OR 303
-#define MOD 304
+#define CLASS 275
+#define ENDCLASS 276
+#define EXTENDS 277
+#define PLUS 278
+#define MINUS 279
+#define DIV 280
+#define MUL 281
+#define ARROW 282
+#define IF 283
+#define THEN 284
+#define ELSE 285
+#define ENDIF 286
+#define WHILE 287
+#define DO 288
+#define ENDWHILE 289
+#define REPEAT 290
+#define UNTIL 291
+#define CONTINUE 292
+#define BREAK 293
+#define RETURN 294
+#define BREAKPOINT 295
+#define FREE 296
+#define ALLOC 297
+#define INITIALIZE 298
+#define GT 299
+#define GE 300
+#define LT 301
+#define LE 302
+#define NE 303
+#define EQ 304
+#define AND 305
+#define OR 306
+#define MOD 307
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -162,7 +168,7 @@ union YYSTYPE
     struct ParamList* plist;
     struct TypeTable* type;
 
-#line 166 "y.tab.h"
+#line 172 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
