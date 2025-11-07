@@ -50,8 +50,10 @@ void Class_Finstall(struct Classtable *cptr, char *typename, char *name){
 
     TypeTable* type = typetable_lookup(typename);
 
-    if(!type){
-        printf("Error: Class_Finstall() => No type %s found\n",typename);
+    Classtable* ctype = CLookup(typename);
+
+    if(!type && !ctype){
+        printf("Error: Class_Finstall() => No type or class %s found\n",typename);
         exit(0);
     }
 
@@ -66,7 +68,7 @@ void Class_Finstall(struct Classtable *cptr, char *typename, char *name){
     temp->Name = strdup(name);
     temp->Type = type;
     temp->Fieldindex = field != NULL ? field->Fieldindex + 1 : 0;
-    temp->Ctype = cptr;
+    temp->Ctype = ctype;
     temp->Next = NULL;
 
     if(!field){

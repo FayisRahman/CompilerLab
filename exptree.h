@@ -26,6 +26,7 @@ typedef enum NodeType {
     FREENODE,           // 21
     INITIALIZENODE,     // 22
     NULLNODE,           // 23
+    SELFNODE,           // 24
 } NodeType;
 
 typedef enum DataType {
@@ -41,6 +42,7 @@ typedef enum DataType {
     TYPE_FUNCT_PTR, // 9
     TYPE_TUPLE,     // 10
     TYPE_VOID,      // 11
+    TYPE_CLASS,     // 12
 } DataType;
 
 

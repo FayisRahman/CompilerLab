@@ -50,7 +50,7 @@ TypeTable* typetable_lookup(const char* name){
         head = head->next;
     }
 
-
+    return NULL;
 
 }
 

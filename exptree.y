@@ -194,7 +194,14 @@ ClassDefList    : ClassDefList Classdef
                 | Classdef
                 ;
 
-Classdef        : Cname '{'DECL Fieldlists MethodDecl ENDDECL MethodDefns '}'
+Classdef        : Cname '{'DECL Fieldlists MethodDecl ENDDECL MethodDefns '}' {
+
+
+
+
+                    curr_class_table = NULL;
+
+                }
                 ;
 
 Cname           : ID        {Cptr = Cinstall($1->varname,NULL); curr_class_table = Cptr; }
@@ -221,7 +228,12 @@ MethodDefns     : MethodDefns Fdef
                 ;
 
 
-FieldFunction   : SELF '.' ID '(' ArgList ')'
+FieldFunction   : SELF '.' ID '(' ArgList ')' {
+
+                    struct tnode* temp = createTree(0,TYPE_CLASS,$3->varname,SELFNODE,)
+
+
+                }
                 | ID '.' ID '(' ArgList ')'   //This will not occur inside a class.
                 | Field '.' ID '(' ArgList ')'
                 ;
