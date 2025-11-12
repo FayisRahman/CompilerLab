@@ -630,12 +630,18 @@ AsgStmt : ID '=' E ';' {
                 Lsymbol* ptr2 = find_lsymbol($1->varname);
                 int varType = get_var_type(ptr1,ptr2,$1->varname);
                 TypeTable* type1 = get_typetable(ptr1,ptr2,$1->varname);
+                Classtable* class1 = get_classtable($1->varname);
 
                 TypeTable* type2 = $3->typeEntry;
 
-                if(strcmp(type1->name,type2->name) != 0){
+                if(type1 && type2 && strcmp(type1->name,type2->name) != 0){
                     printf("Error: Assignment with different Data Types, LHS => %s and RHS => %s\n", type1->name,type2->name);
                     exit(0);
+                }else if(class1 && $3->centry){
+                    if(strcmp(class1->Name,$3->centry->Name) != 0){
+                        printf("Error: Assignment with different Class Types, LHS => %s and RHS => %s\n", class1->Name,$3->centry->Name);
+                        exit(0);
+                    }
                 }
                 if(varType != TYPE_VAR && varType != TYPE_PTR){
                     printf("Error: %s is not of variable type\n",$1->varname);
@@ -683,9 +689,14 @@ AsgStmt : ID '=' E ';' {
             TypeTable* type1 = $1->typeEntry;
             TypeTable* type2 = $3->typeEntry;
             if($3->nodetype != NULLNODE){
-                if(strcmp($1->typeEntry->name,$3->typeEntry->name) != 0){
+                if(type1 && type2 && strcmp($1->typeEntry->name,$3->typeEntry->name) != 0){
                     printf("Error: Assignment with different Data Types, LHS => %s and RHS => %s\n", type1->name,type2->name);
                     exit(0);
+                }else if($1->centry && $3->centry){
+                    if(strcmp($1->centry->Name,$3->centry->Name) != 0){
+                        printf("Error: Assignment with different Class Types, LHS => %s and RHS => %s\n", $1->centry->Name,$3->centry->Name);
+                        exit(0);
+                    }
                 }
                 $$ = createTree(0,TYPE_VAR, "=", ASSIGNMENT,NULL,$1, NULL, $3);
                 $$->typeEntry = $1->typeEntry;
