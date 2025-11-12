@@ -1,0 +1,28 @@
+{
+    "files.associations": {
+        "exptree.h": "c"
+    },
+    "editor.tokenColorCustomizations": {
+  "textMateRules": [
+    {
+      "scope": "storage.type.expl",
+      "settings": {
+        "foreground": "#00FF00",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "scope": "entity.name.type.struct.usage.expl",
+      "settings": {
+        "foreground": "#00AA00"
+      }
+    },
+    {
+      "scope": "entity.name.type.struct.definition.expl",
+      "settings": {
+        "foreground": "#0077FF"
+      }
+    }
+  ]
+}
+}

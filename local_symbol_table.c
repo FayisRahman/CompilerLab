@@ -70,6 +70,7 @@ struct Lsymbol* create_lsymbol_id(char *name, int size,int varType){
     temp->varType = varType;
     temp->size = size;
     temp->next = NULL;
+    temp->centry = NULL;
     temp->binding = 0;
     return temp;
 }
@@ -128,6 +129,9 @@ void lst_destroy(Lsymbol* head){
 }
 
 Lsymbol* lst_set_bindings(Lsymbol* head){
+
+    
+
     int binding = 1;
     Lsymbol* temp = head;
     while(temp){
@@ -135,6 +139,8 @@ Lsymbol* lst_set_bindings(Lsymbol* head){
         binding += 1;
         temp = temp->next;
     }
+
+    print_lsymbol_table();
     return head;
 
 }
@@ -207,9 +213,10 @@ int get_var_type(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     }else if(gentry){
         return gentry->varType;
     }else{
+        // return lentry->varType;
         printf("Error: Variable %s not declared lst199\n",varname);
         // print_call_stack();
-        exit(1);
+        exit(0);
     }
 }
 
@@ -258,6 +265,18 @@ TypeTable* get_typetable(Gsymbol* gentry, Lsymbol* lentry,char* varname){
     }else{
         printf("Error: Variable %s not declared lst248\n",varname);
         exit(0);
+    }
+}
+
+Classtable* get_classtable(char* varname){
+
+    Gsymbol* gentry = find_gsymbol(varname);
+    Lsymbol* lentry = find_lsymbol(varname);
+
+    if(lentry){
+        return lentry->centry;
+    }else if(gentry){
+        return gentry->centry;
     }
 }
 

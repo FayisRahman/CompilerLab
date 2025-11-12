@@ -140,7 +140,7 @@ DataType typetable_lookup_id_type(const TypeTable* entry, const char* name){
 
 int typetable_lookup_id_offset(const TypeTable* entry, const char* name){
 
-    // printf("name of TypeEntry %s\n",name);
+    printf("name of TypeEntry %s\n",name);
     ParamList* plist = entry->plist;
     int count = 0;
 
@@ -168,6 +168,20 @@ TypeTable* typetable_lookup_id_typetable(const TypeTable* entry, const char* nam
 
     printf("Error: No %s present in the tuple definition\n",name);
     exit(0);
+
+}
+
+void typetable_check_type(TypeTable* type1,TypeTable* type2,TypeTable* reqType){
+
+    if(!type1 || !type2){
+        printf("Error: typetable_check_type():  One of the type entry is NULL\n");
+        exit(0);
+    }
+
+    if(strcmp(type1->name,type2->name) != 0 || strcmp(type1->name,reqType->name) != 0){
+        printf("Error: typetable_check_type(): Incorrect types: type1->%s , type2->%s, requiredType->%s\n",type1->name,type2->name,reqType->name);
+        exit(0);
+    }
 
 }
 

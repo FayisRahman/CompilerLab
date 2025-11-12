@@ -27,6 +27,7 @@ typedef enum NodeType {
     INITIALIZENODE,     // 22
     NULLNODE,           // 23
     SELFNODE,           // 24
+    METHODNODE,         // 25
 } NodeType;
 
 typedef enum DataType {

@@ -26,6 +26,8 @@ struct tnode* createTree(int val, int type, char* c, int nodeType,struct Gsymbol
     temp->left = l;
     temp->middle = m;
     temp->right = r;
+    temp->typeEntry = NULL;
+    temp->centry = NULL;
     return temp;
 }
 
@@ -164,6 +166,8 @@ const char* nodetype_to_string(int nodetype) {
         case FREENODE: return "FREE";
         case NULLNODE: return "NULL";
         case INITIALIZENODE: return "INIT";
+        case METHODNODE: return "METHOD";
+        case SELFNODE: return "SELF";
         default: return "UNKNOWN_NODE";
     }
 }
@@ -182,6 +186,7 @@ const char* type_to_string(int type) {
         case TYPE_FUNCT_PTR: return "PTRFUNCT";
         case TYPE_TUPLE: return "TUPLE";
         case TYPE_VOID: return "VOID"; 
+        case TYPE_CLASS: return "CLASS";
         default: return "UNKNOWN_TYPE";
     }
 }

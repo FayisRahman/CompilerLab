@@ -1,0 +1,26 @@
+digraph AST {
+  node [fontname="Arial"];
+  n1 [label="CONNECTOR", shape=box, style=rounded, color=blue];
+  n1 -> n2 [label="left"];
+  n2 [label="CONNECTOR", shape=box, style=rounded, color=blue];
+  n2 -> n3 [label="left"];
+  n3 [label="WRITE", shape=box, style=rounded, color=blue];
+  n3 -> n4 [label="left"];
+  n4 [label="DOT\nvar: name\ntype: 2", shape=box, style=rounded, color=blue];
+  n4 -> n5 [label="left"];
+  n5 [label="NULL\nvar: self", shape=box, style=rounded, color=blue];
+  n4 -> n6 [label="right"];
+  n6 [label="LEAF\nvar: name\ntype: 4", shape=box, style=rounded, color=blue];
+  n2 -> n7 [label="right"];
+  n7 [label="WRITE", shape=box, style=rounded, color=blue];
+  n7 -> n8 [label="left"];
+  n8 [label="DOT\nvar: age\ntype: 1", shape=box, style=rounded, color=blue];
+  n8 -> n9 [label="left"];
+  n9 [label="NULL\nvar: self", shape=box, style=rounded, color=blue];
+  n8 -> n10 [label="right"];
+  n10 [label="LEAF\nvar: age\ntype: 4", shape=box, style=rounded, color=blue];
+  n1 -> n11 [label="right"];
+  n11 [label="RETURN\ntype: 1", shape=box, style=rounded, color=blue];
+  n11 -> n12 [label="left"];
+  n12 [label="LEAF\ntype: 1\nval: 1", shape=box, style=rounded, color=blue];
+}

@@ -56,49 +56,52 @@ extern int yydebug;
     ID = 262,
     NUM = 263,
     NILL = 264,
-    STRING = 265,
-    begin = 266,
-    end = 267,
-    MAIN = 268,
-    DECL = 269,
-    ENDDECL = 270,
-    TYPE = 271,
-    ENDTYPE = 272,
-    TUPLE = 273,
-    STRUCT = 274,
-    CLASS = 275,
-    ENDCLASS = 276,
-    EXTENDS = 277,
-    PLUS = 278,
-    MINUS = 279,
-    DIV = 280,
-    MUL = 281,
-    ARROW = 282,
-    IF = 283,
-    THEN = 284,
-    ELSE = 285,
-    ENDIF = 286,
-    WHILE = 287,
-    DO = 288,
-    ENDWHILE = 289,
-    REPEAT = 290,
-    UNTIL = 291,
-    CONTINUE = 292,
-    BREAK = 293,
-    RETURN = 294,
-    BREAKPOINT = 295,
-    FREE = 296,
-    ALLOC = 297,
-    INITIALIZE = 298,
-    GT = 299,
-    GE = 300,
-    LT = 301,
-    LE = 302,
-    NE = 303,
-    EQ = 304,
-    AND = 305,
-    OR = 306,
-    MOD = 307
+    SELF = 265,
+    STRING = 266,
+    begin = 267,
+    end = 268,
+    MAIN = 269,
+    DECL = 270,
+    ENDDECL = 271,
+    TYPE = 272,
+    ENDTYPE = 273,
+    TUPLE = 274,
+    STRUCT = 275,
+    CLASS = 276,
+    ENDCLASS = 277,
+    EXTENDS = 278,
+    NEW = 279,
+    DELETE = 280,
+    PLUS = 281,
+    MINUS = 282,
+    DIV = 283,
+    MUL = 284,
+    ARROW = 285,
+    IF = 286,
+    THEN = 287,
+    ELSE = 288,
+    ENDIF = 289,
+    WHILE = 290,
+    DO = 291,
+    ENDWHILE = 292,
+    REPEAT = 293,
+    UNTIL = 294,
+    CONTINUE = 295,
+    BREAK = 296,
+    RETURN = 297,
+    BREAKPOINT = 298,
+    FREE = 299,
+    ALLOC = 300,
+    INITIALIZE = 301,
+    GT = 302,
+    GE = 303,
+    LT = 304,
+    LE = 305,
+    NE = 306,
+    EQ = 307,
+    AND = 308,
+    OR = 309,
+    MOD = 310
   };
 #endif
 /* Tokens.  */
@@ -109,55 +112,58 @@ extern int yydebug;
 #define ID 262
 #define NUM 263
 #define NILL 264
-#define STRING 265
-#define begin 266
-#define end 267
-#define MAIN 268
-#define DECL 269
-#define ENDDECL 270
-#define TYPE 271
-#define ENDTYPE 272
-#define TUPLE 273
-#define STRUCT 274
-#define CLASS 275
-#define ENDCLASS 276
-#define EXTENDS 277
-#define PLUS 278
-#define MINUS 279
-#define DIV 280
-#define MUL 281
-#define ARROW 282
-#define IF 283
-#define THEN 284
-#define ELSE 285
-#define ENDIF 286
-#define WHILE 287
-#define DO 288
-#define ENDWHILE 289
-#define REPEAT 290
-#define UNTIL 291
-#define CONTINUE 292
-#define BREAK 293
-#define RETURN 294
-#define BREAKPOINT 295
-#define FREE 296
-#define ALLOC 297
-#define INITIALIZE 298
-#define GT 299
-#define GE 300
-#define LT 301
-#define LE 302
-#define NE 303
-#define EQ 304
-#define AND 305
-#define OR 306
-#define MOD 307
+#define SELF 265
+#define STRING 266
+#define begin 267
+#define end 268
+#define MAIN 269
+#define DECL 270
+#define ENDDECL 271
+#define TYPE 272
+#define ENDTYPE 273
+#define TUPLE 274
+#define STRUCT 275
+#define CLASS 276
+#define ENDCLASS 277
+#define EXTENDS 278
+#define NEW 279
+#define DELETE 280
+#define PLUS 281
+#define MINUS 282
+#define DIV 283
+#define MUL 284
+#define ARROW 285
+#define IF 286
+#define THEN 287
+#define ELSE 288
+#define ENDIF 289
+#define WHILE 290
+#define DO 291
+#define ENDWHILE 292
+#define REPEAT 293
+#define UNTIL 294
+#define CONTINUE 295
+#define BREAK 296
+#define RETURN 297
+#define BREAKPOINT 298
+#define FREE 299
+#define ALLOC 300
+#define INITIALIZE 301
+#define GT 302
+#define GE 303
+#define LT 304
+#define LE 305
+#define NE 306
+#define EQ 307
+#define AND 308
+#define OR 309
+#define MOD 310
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 26 "exptree.y"
+#line 33 "exptree.y"
 
     struct tnode* node;
     char* string;
@@ -166,9 +172,9 @@ union YYSTYPE
     struct Lsymbol* lsymbol;
     struct DimNode* DimList;
     struct ParamList* plist;
-    struct TypeTable* type;
+    struct Fieldlist* type;
 
-#line 172 "y.tab.h"
+#line 178 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -176,9 +182,23 @@ typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+/* Location type.  */
+#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
+typedef struct YYLTYPE YYLTYPE;
+struct YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+};
+# define YYLTYPE_IS_DECLARED 1
+# define YYLTYPE_IS_TRIVIAL 1
+#endif
+
 
 extern YYSTYPE yylval;
-
+extern YYLTYPE yylloc;
 int yyparse (void);
 
 #endif /* !YY_YY_Y_TAB_H_INCLUDED  */

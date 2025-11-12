@@ -13,6 +13,7 @@ ParamList* create_param(char* name, DataType type) {
     node->type = type;
     node->varType = TYPE_VAR;
     node->next = NULL;
+    node->centry = NULL;
     return node;
 }
 
@@ -51,6 +52,7 @@ void paramlist_display(ParamList* head) {
 void is_paramlist_correct(ParamList* main, ParamList* t){
     ParamList* t1 = main;
     ParamList* t2 = t;
+    
     while(t1){
         if(t2){
             if(t1->typeEntry != t2->typeEntry){
@@ -77,10 +79,17 @@ void paramlist_is_input_args_correct(ParamList* main, tnode* t){
     tnode* t2 = t;
     int count = 0;
     t2 = t;
+    
     while(t1){
         if(t2){
-            if(t1->type != t2->type){
-                printf("Error:Incorrect set of arguments for the function 82->%s->%s and %s->%s\n",t1->name,type_to_string(t1->type),t2->varname,type_to_string(t2->type));
+            if(t1->centry != NULL && t2->centry != NULL){
+                
+                if(strcmp(t1->centry->Name, t2->centry->Name) != 0){
+                    printf("Error:Incorrect set of arguments for the function 82->%s->%s and %s->%s\n",t1->name,t1->centry->Name,t2->varname,t2->centry->Name);
+                    exit(0);
+                }
+            }else if(strcmp(t1->typeEntry->name,t2->typeEntry->name) != 0){
+                printf("Error:Incorrect set of arguments for the function 82->%s->%s and %s->%s\n",t1->name,t1->typeEntry->name,t2->varname,t2->typeEntry->name);
                 exit(0);
             }
         }else{

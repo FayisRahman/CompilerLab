@@ -111,6 +111,8 @@ void create_label_with_message(FILE* fptr,int label_no,char* msg);
 //TO GENERATE THE CODE FOR A FUNCTION AND SET UP THE ACTIVATION RECORD
 int function_node_codegen(FILE* fptr,tnode* t);
 
+int method_node_codegen(FILE* fptr,tnode* t);
+
 //TO GENERATE THE RETURN CODE AND TO REMOVE THE UNNECESSARY STACK CONTENTS AND REMOVE THE ACTIVATION RECORD OF THE FUNCTION
 void return_node_codegen(FILE* fptr, tnode* t);
 

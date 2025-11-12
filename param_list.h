@@ -4,6 +4,7 @@
 #include "AST.h"
 #include "exptree.h"
 #include "type_table.h"
+#include "class_table.h"
 
 struct tnode;
 struct TypeTable;
@@ -14,6 +15,7 @@ typedef struct ParamList{
     int size;
     int varType;
     struct TypeTable* typeEntry;
+    struct Classtable* centry;
     struct ParamList* next;
 }ParamList;
 

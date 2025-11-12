@@ -30,6 +30,7 @@
     yylval.node = createTree(0, TYPE_NULL, NULL, WRITENODE, NULL, NULL, NULL,NULL);
     return WRITE;
 }
+"new" {return NEW;}
 "if" {return IF;}
 "then" {return THEN;}
 "else" {return ELSE;}
@@ -57,20 +58,19 @@
 "class" {return CLASS;}
 "endclass" {return ENDCLASS;}
 "extends" {return EXTENDS;}
-"self" {return SELF;}
+"self" {
+    yylval.node = createTree(0, TYPE_NULL, strdup(yytext), NULLNODE,NULL, NULL, NULL,NULL);
+    return SELF;
+}
 "delete" {return DELETE;}
-"null" {
-    yylval.node = createTree(0, TYPE_INT, strdup(yytext), NULLNODE,NULL, NULL, NULL,NULL);
-    return NILL;
-}
-
-"NULL" {
+(null|NULL|nullptr) {
     yylval.node = createTree(0, TYPE_INT, strdup(yytext), NULLNODE,NULL, NULL, NULL,NULL);
     return NILL;
 }
 
 
-[a-zA-Z][a-zA-Z0-9]* {
+
+[a-zA-Z][a-zA-Z0-9_]* {
     yylval.node = createTree(0, TYPE_VAR, strdup(yytext), LEAFNODE,NULL, NULL, NULL,NULL);
     return ID;
 }
@@ -114,6 +114,7 @@
 
 [\n]+ { /* skip whitespace */ currLine++;
         // printf("%d\n",currLine);
+        { yylloc.last_line++; yylloc.first_line++; }
     }
 
 . { /* ignore unrecognized characters */ }

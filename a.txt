@@ -1,6 +1,5 @@
 type
-  struct node
-  {
+  struct node{
     int d;
     int s;
     int t;
@@ -10,49 +9,58 @@ type
     List next;
   };
 endtype
-decl
-  List list[10];
-  node y,z,gcd(int a,int b);
-  
-enddecl
-node gcd(int a,int b)
-{
-  decl
-    int q,r,temp;
-  enddecl
+class
+Person{
+ decl
+  str name;
+  int age;
+  int printDetails();
+  str findName();
+  int createPerson(str name, int age,Person a);
+ enddecl
+ int printDetails(){
   begin
-    if(b==0) then
-      y.d = a;
-      y.s = 1;
-      y.t = 0;
-    else
-      q = a/b;
-      r = a%b;
-      z = gcd(b,r);
-      temp = z.s;
-      y.s = z.t;
-      y.t = temp - (q*z.t);
-    endif;
-  return y;
+   write(self.name);
+   write(self.age);
+   return 1;
   end
+ }
+ str findName(){
+  begin
+   return self.name;
+  end
+ }
+ int createPerson(str name, int age,Person a){
+  begin
+   self.name = name;
+   self.age = age;
+   breakpoint;
+   return 1;
+  end
+ }
 }
-int main()
-{
+endclass
+decl
+enddecl
+int main(){
   decl
     node res;
     int a,b,c;
+    str d;
     List l1,l2;
+    Person p;
   enddecl
-
   begin
     initialize();
-    l1 = Alloc();
-    l1.data = 10;
-    list[0] = l1;
-    l2 = list[0];
-    write(l2.data);
-    
-
+    p = new (Person);
+    breakpoint;
+    a = p.createPerson("Alice", 30, p);
+    breakpoint;
+    b = p.printDetails();
+    breakpoint;
+    d = p.findName();
+    write(d);
+    breakpoint;
   return 0;
   end
 }

@@ -6,6 +6,7 @@
 #include "global_symbol_table.h"
 #include "exptree.h"
 #include "type_table.h"
+#include "class_table.h"
 
 
 #define MAX_LOCAL_TABLES 100
@@ -15,9 +16,10 @@ typedef struct Lsymbol {
     int type;         // type of the variable
     int varType;      // this is to know if its variable,array or pointer
     int size;         // size of the type of the variable
-    int binding;    // stores the static memory address allocated to the variable
+    int binding;      // stores the static memory address allocated to the variable
     struct Lsymbol *next;
     struct TypeTable* typeEntry;
+    struct Classtable* centry;
 //    struct DimNode* dimlist;
 }Lsymbol;
 
@@ -76,6 +78,8 @@ DimNode* get_dimlist(Gsymbol* gentry, Lsymbol* lentry,char* varname);
 int get_binding(Gsymbol* gentry, Lsymbol* lentry, char* varname,FILE* fptr, int regNo); // here the function will also be adding some xsm code as well
 
 TypeTable* get_typetable(Gsymbol* gentry, Lsymbol* lentry,char* varname);
+
+Classtable* get_classtable(char* varname);
 
 int get_funct_arg_varType(Gsymbol* gentry, int offset);
 

@@ -21,7 +21,7 @@ typedef struct tnode {
     struct DimNode* dimlist;
     struct ParamList* plist; 
     struct TypeTable* typeEntry;
-    struct Classtable* Centry;
+    struct Classtable* centry;
 } tnode;
 
 

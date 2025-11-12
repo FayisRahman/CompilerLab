@@ -36,4 +36,5 @@ DataType typetable_lookup_id_type(const TypeTable* entry, const char* name);
 int typetable_lookup_id_offset(const TypeTable* entry, const char* name);
 void typetable_append_plist(const char* name, struct ParamList* plist);
 TypeTable* typetable_lookup_id_typetable(const TypeTable* entry, const char* name);
+void typetable_check_type(TypeTable* type1,TypeTable* type2,TypeTable* reqType);
 #endif
